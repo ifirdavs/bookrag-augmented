@@ -56,6 +56,13 @@ BookRAG introduces a BookIndex containing a document hierarchy, an entity graph,
 
 This is a **BookRAG-inspired implementation**, not a reproduction or a claim to reproduce its benchmark results. We will implement our own pipeline and cite the paper and any code consulted.
 
+At the architectural level, BookRAG’s central index contains:
+- A document tree.
+- An entity–relation graph.
+- Links connecting graph entities to document nodes.
+
+Our planned **section trees**, **knowledge graph**, and **evidence links** reproduce that central idea. However, the original also specifies **query classification**, **retrieval operators**, **graph-based scoring**, **Skyline selection**, and **gradient-based entity resolution**. We are simplifying those algorithms and adding BM25/vector search across papers.
+
 The original BookRAG also uses reranking: its text-ranking operator scores retrieved blocks for query relevance, while Skyline selection combines text relevance with graph importance. Appendix A.2 specifies Qwen3-Reranker-4B for its experiments. Reranking also supports entity resolution during indexing. Our initial adaptation uses a configurable query-time relevance reranker; reproducing Skyline selection or model-based entity resolution is outside the minimum scope.
 
 References: [BookRAG paper](https://arxiv.org/abs/2512.03413), [author repository linked in our earlier discussion](https://github.com/sam234990/BookRAG). Repository availability and implementation details should be checked before relying on its code.
