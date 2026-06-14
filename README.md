@@ -79,17 +79,17 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["Question"] --> B["Agent and MCP client"]
+    A["User Question<br><sub style='font-size:0.8em'>e.g., Compare FedProx and SCAFFOLD for non-IID data</sub>"] --> B["Agent and MCP client"]
     B --> C["MCP retrieval server"]
-    C --> D["Corpus paper search"]
-    C --> E["Evidence retrieval"]
+    C --> D["Corpus (indexed) papers search<br><sub style='font-size:0.8em'>Vector DB + keyword search</sub><br><hr><sub style='font-size:0.8em'>Find relevant papers and chunks</sub>"]
+    C --> E["BookRAG-inspired evidence retrieval<br><sub style='font-size:0.8em'>Section trees + entity links</sub><br><hr><sub style='font-size:0.8em'>Find precise evidence inside papers</sub>"]
     D --> F["Vector and keyword indexes"]
     E --> F
     E --> G["Hierarchy and graph lookup"]
-    F --> H["Merge, deduplicate, enforce budget"]
+    F --> H["Evidence merging and reranking, deduplicate, enforce budget<br><sub style='font-size:0.8em'>Preserve paper ID, section and page</sub>"]
     G --> H
     H --> B
-    B --> I["Generate answer and citations"]
+    B --> I["LLM-generated Answer<br><sub style='font-size:0.8em'>Grounded comparison with citations</sub>"]
     I --> J["Validate citation IDs and provenance"]
     J --> K["Answer, evidence, or insufficient-evidence response"]
 ```
