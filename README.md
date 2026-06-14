@@ -38,7 +38,7 @@ The earlier discussion described a 14-day project, at least 20 PDFs, at least tw
 | --- | --- |
 | Corpus | At least 20 curated, relevant, text-based FL papers; start development with 3 |
 | Baseline | Fixed-size chunks, dense retrieval, evidence-grounded answers |
-| Enhanced retrieval | BM25 plus vector search, section hierarchy, bounded evidence expansion |
+| Enhanced retrieval | BM25 plus vector search, section hierarchy, bounded evidence expansion, optional reranking |
 | Graph | Small set of typed entities and evidence-backed relations |
 | Agent | Bounded tool-calling loop that gathers evidence and produces a cited answer |
 | MCP | Two retrieval tools and one corpus-statistics resource |
@@ -55,6 +55,8 @@ The system answers from its indexed corpus. It does not imply complete coverage 
 BookRAG introduces a BookIndex containing a document hierarchy, an entity graph, and mappings from entities to hierarchy nodes, together with an agent-based retrieval workflow. FedResearch adapts these ideas to a collection of independent research papers, adding a corpus-level search layer.
 
 This is a **BookRAG-inspired implementation**, not a reproduction or a claim to reproduce its benchmark results. We will implement our own pipeline and cite the paper and any code consulted.
+
+The original BookRAG also uses reranking: its text-ranking operator scores retrieved blocks for query relevance, while Skyline selection combines text relevance with graph importance. Appendix A.2 specifies Qwen3-Reranker-4B for its experiments. Reranking also supports entity resolution during indexing. Our initial adaptation uses a configurable query-time relevance reranker; reproducing Skyline selection or model-based entity resolution is outside the minimum scope.
 
 References: [BookRAG paper](https://arxiv.org/abs/2512.03413), [author repository linked in our earlier discussion](https://github.com/sam234990/BookRAG). Repository availability and implementation details should be checked before relying on its code.
 
@@ -86,7 +88,7 @@ flowchart TD
     D --> F["Vector and keyword indexes"]
     E --> F
     E --> G["Hierarchy and graph lookup"]
-    F --> H["Evidence merging and reranking, deduplicate, enforce budget<br><sub style='font-size:0.8em'>Preserve paper ID, section and page</sub>"]
+    F --> H["Merge and deduplicate, optionally rerank, enforce budget<br><sub style='font-size:0.8em'>Preserve paper ID, section and page</sub>"]
     G --> H
     H --> B
     B --> I["LLM-generated Answer<br><sub style='font-size:0.8em'>Grounded comparison with citations</sub>"]
@@ -116,6 +118,8 @@ fedresearch/
       b1_hybrid.yaml
       b2_structure.yaml
       b3_graph.yaml
+      b1_hybrid_rerank.yaml         # Paired reranking experiment; same B1 candidates
+      b3_graph_rerank.yaml          # Paired reranking experiment; same B3 candidates
   src/
     fedresearch/
       __init__.py
@@ -146,6 +150,7 @@ fedresearch/
         hybrid.py                  # BM25, dense retrieval, reciprocal rank fusion
         structure.py               # Parent, child, adjacent-block expansion
         graph.py                   # Bounded graph traversal to source evidence
+        reranking.py               # Optional query-passage relevance scoring
         evidence.py                # Deduplication, packing, citation-ready records
       llm/
         client.py                  # Provider adapter, retries, usage accounting
@@ -218,6 +223,7 @@ These are working design decisions; lock exact versions after a compatibility ch
 | Vector store | Local persistent Chroma | Small corpus, straightforward metadata filtering |
 | Keyword search | BM25 | Match method names, acronyms, and technical terms |
 | Fusion | Reciprocal Rank Fusion | Combine rankings without treating unlike scores as equivalent |
+| Reranking | Configurable relevance-reranker adapter; model/provider to verify | Rescore a bounded candidate pool against the query; evaluate separately from RRF |
 | Metadata and hierarchy | SQLite | Traceable paper, section, block, and chunk lookups |
 | Graph | NetworkX with JSON persistence | Small graph without another database service |
 | Generation and tool calls | Hosted model through a provider adapter | Keep deployment details outside retrieval logic |
@@ -227,6 +233,8 @@ These are working design decisions; lock exact versions after a compatibility ch
 | Verification | pytest for consequential behavior | Protect provenance, retrieval, and integration boundaries |
 
 The earlier model preference is GPT-6 Luna via a hosted service. Treat it as a preference to verify against the actual account/provider: deployment availability, API compatibility, tool calling, embedding availability, and cost remain Phase 0 decisions. Do not hardcode an unverified model or deployment name. No local LLM is required for this plan.
+
+Reranking is disabled by default for the core experiment ladder. Prefer a hosted reranker where practical; verify access, cost, input limits, and handling of scientific passages before selecting one. BookRAG's Qwen3-Reranker-4B is a reference choice, not a required dependency.
 
 PyMuPDF's documentation warns that extracted PDF text may differ from visual reading order; multi-column layouts require inspection. We will inspect three representative FL papers before committing to a parser. A layout parser fallback is a response to observed failure, not a second default pipeline.
 
@@ -244,7 +252,7 @@ Define these contracts before implementing the parser and indexes.
 | `Chunk` | `chunk_id`, policy, text, section ID/path, source block spans, token count |
 | `Entity` | `entity_id`, type, canonical label, aliases, supporting block IDs |
 | `Relation` | subject, predicate, object, supporting block spans, extraction confidence, review status |
-| `Evidence` | evidence ID, paper, section, pages, source spans, text, retrieval origin and score |
+| `Evidence` | evidence ID, paper, section, pages, source spans, text, retrieval origin and score, optional rerank score/rank |
 | `Answer` | answer text, citation-to-evidence map, evidence sufficiency, usage and execution trace |
 
 IDs are stable for the same document version and parser/configuration version. A different PDF or incompatible parse creates a new version and invalidates affected indexes and benchmark mappings.
@@ -259,12 +267,14 @@ Missing or uncertain headings get an explicit fallback section. Unsupported tabl
 2. **Candidate retrieval:** Search dense and BM25 indexes; fuse ranked lists with RRF in enhanced modes.
 3. **Structure expansion:** Follow source section links to relevant neighboring blocks or bounded parent/child content. Avoid adding whole papers or large sections without regard to the context budget.
 4. **Graph expansion:** Resolve aliases, traverse a small number of evidence-backed relations, and retrieve their original supporting blocks. The graph never substitutes for the original text.
-5. **Evidence packing:** Deduplicate overlapping source spans, preserve paper diversity for comparisons, rank candidates, and enforce a shared token budget.
-6. **Answering:** Generate claims only from supplied evidence and cite their sources. If required evidence is missing, provide a qualified partial answer or an insufficient-evidence response.
+5. **Merge and deduplicate:** Merge retrieval and expansion candidates, deduplicate overlapping source spans, and apply a bounded candidate cap. Retain original scores, expansion reasons, and provenance.
+6. **Optional reranking:** Score candidate passages against the question and reorder them before final evidence selection. Keep the text and source IDs intact. RRF combines existing rankings; reranking evaluates query-passage relevance using a separate model. A reranker cannot recover evidence missing from its candidate pool.
+7. **Evidence packing:** Select from the resulting ranking, preserve paper diversity for comparisons, and enforce a shared token budget. Record any diversity constraint separately from relevance scores.
+8. **Answering:** Generate claims only from supplied evidence and cite their sources. If required evidence is missing, provide a qualified partial answer or an insufficient-evidence response.
 
 Initial retrieval settings to tune on development questions only: chunk size around 600 tokens, 100-token overlap for fixed chunks, 20 candidates from each retriever, RRF constant 60, final top 5 evidence items for retrieval metrics, and approximately 4,000 evidence tokens for generation. These are starting settings, not proven optimal values. Section-aware chunks target a similar size and split oversized sections.
 
-For the first structure-aware implementation, use RRF plus deterministic bounded expansion. A separate reranker is optional and must be evaluated as its own change.
+Add the reranking adapter after hybrid retrieval in Phase 3; reuse it after structure and graph expansion in later modes. Starting settings: `reranking.enabled: false`, `reranking.candidate_limit: 40` (tune within 30–50), and an explicitly configured provider/model and input-length limit. Keep final top-k and evidence-token budgets unchanged. Bound passage lengths using the reranker's tokenizer; log truncation so gold evidence is not silently lost. Provider failures must be recorded as failed reranking runs; any interactive fallback to the existing ranking must be explicit in the trace.
 
 ## 9. Knowledge graph scope
 
@@ -292,6 +302,8 @@ Do not add generic `OUTPERFORMS` edges. Performance comparisons need compatible 
 | Resource | `fl://corpus/statistics` | Return paper count, coverage metadata, parse warnings, and index version |
 
 `mode` supports `dense`, `hybrid`, `structure`, and `graph` once implemented. The server bounds limits and validates supplied paper IDs. Experiment settings, including context budgets, come from validated configuration.
+
+Reranking is a validated service setting shared by direct evaluation and MCP calls, not a separate MCP tool or retrieval mode. Return optional rerank scores/ranks with evidence and record the reranker configuration, candidate IDs, latency, and usage in execution traces.
 
 An optional later tool, `get_section(paper_id, section_id)`, supports explicit navigation under a size limit. Method comparison initially belongs to the agent: gather evidence for both methods, then synthesize. A separate `compare_methods` tool is unnecessary for the minimum deliverable.
 
@@ -325,8 +337,12 @@ Do not use retrieval output itself as the gold annotation. Freeze held-out label
 | B1 | Same chunks plus BM25 and RRF | Benefit of hybrid retrieval |
 | B2 | Section-aware chunks and bounded hierarchy expansion | Benefit of the structure package beyond B1 |
 | B3 | B2 plus evidence-linked graph expansion | Incremental benefit of the graph |
+| B1-R | B1 plus reranking of its same candidate pool | Incremental benefit of reranking after hybrid retrieval |
+| B3-R | B3 plus reranking of its same candidate pool | Incremental benefit of reranking after structure and graph expansion |
 
 B2 changes both chunk boundaries and hierarchy expansion. Therefore B2 versus B1 tests the combined structure package. If time permits, add **B2a: section-aware chunks without expansion**, then B2 with expansion, to separate those effects.
+
+Keep reranking disabled for B0–B3 and B2a. Compare B1-R with B1 and B3-R with B3 separately, using identical pre-reranking candidates, candidate caps, source text, diversity rules, final top-k, and evidence-token budgets within each pair. Reuse saved candidate pools to make this check inspectable. Choose the reranker and tune its settings on development questions only. A B2-R experiment is optional if we need to isolate its effect without graph expansion. Do not attribute a reranked system's gain to hierarchy or the graph without the corresponding controlled comparison.
 
 First run these modes through a fixed retrieval-and-answer pipeline, with the same corpus, parser outputs, embedding model, generator, answer prompt, and final evidence-token budget. Disable model-based query rewriting and agent routing for this comparison. Afterwards evaluate the agent on the best supported mode as a separate end-to-end system. If corpus routing is enabled in a comparison, apply the same policy to every arm and report its misses.
 
@@ -341,7 +357,7 @@ First run these modes through a fixed retrieval-and-answer pipeline, with the sa
 | Groundedness | Supported substantive claims divided by all substantive claims |
 | Citation support | Citations whose passages support the associated claims divided by all citations |
 | Abstention behavior | Correct rejection of unanswerable questions and false abstention on answerable questions |
-| Efficiency | Query latency, embedding/generation tokens, tool calls, indexing time, observed cost |
+| Efficiency | Query latency, separate reranking latency/usage/cost, embedding/generation tokens, tool calls, indexing time, total observed cost |
 
 Gold evidence uses source block spans so annotations remain comparable across chunk policies. Before experiments, define a fixed span-overlap and required-fact rule for relevance, and manually adjudicate ambiguous matches. Deduplicate overlapping results before scoring; report token budgets and retrieval item sizes so large expanded items cannot hide their cost.
 
@@ -354,6 +370,7 @@ No measured results exist yet. `reports/evaluation.md` will contain results afte
 ## 12. Reproducibility, verification, and data handling
 
 - Track source metadata, PDF checksums, parser version, chunk policies, embedding model/dimension, prompts, graph schema, config hashes, and index/run IDs.
+- For reranking, record enabled state, model/provider/version, candidate cap and IDs, input-length policy, scores/ranks, latency, usage, and failures. Preserve the original ranking for paired comparisons.
 - Reuse cached embeddings and validated extraction outputs. Rebuild dependent stages when their inputs change.
 - Keep API credentials in environment variables; commit variable names and configuration examples only.
 - Exclude generated indexes, local PDFs, raw traces, caches, and credentials from Git by default. Publish corpus metadata and acquisition instructions; include PDFs only where redistribution is permitted.
@@ -389,7 +406,7 @@ The sequence is dependency-driven; day allocations are provisional. Detailed tas
 | 0 — Foundation | 1 | Rubric, provider access, contracts, corpus manifest, package skeleton agreed |
 | 1 — Preprocessing | 2–3 | Three PDFs correctly parsed with page/block/section provenance; then corpus processed |
 | 2 — Baseline | 4–5 | Dense retrieval and grounded cited answers work; initial gold questions annotated |
-| 3 — Hybrid retrieval | 6 | BM25/RRF added; dev-set comparison recorded |
+| 3 — Hybrid retrieval and reranking | 6 | BM25/RRF and optional reranking adapter added; separate paired dev comparisons recorded |
 | 4 — Structure | 7–8 | Section chunks and bounded expansion work; B2/B2a dev checks recorded |
 | 5 — Graph | 9–10 | Validated evidence-linked graph; B3 dev checks recorded |
 | 6 — MCP and agent | 11 | Tools/resource verified through MCP; bounded end-to-end agent works |
@@ -407,6 +424,7 @@ If time is short, reduce graph breadth and optional UI work first. Preserve the 
 - [ ] At least two MCP tools and one resource work through a real MCP client.
 - [ ] The agent gathers evidence, answers with supported citations, and handles insufficient evidence.
 - [ ] Held-out evaluation and relevant ablations have recorded outputs and a documented rubric.
+- [ ] Reranking can be toggled independently; paired results and its latency/cost are reported before choosing a default.
 - [ ] At least two failure cases explain observed causes and remaining limitations.
 - [ ] Setup and demo instructions reflect commands actually verified.
 - [ ] Deliverables meet the verified course rubric.

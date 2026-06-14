@@ -14,7 +14,7 @@ Tasks:
 2. Confirm the hosted generation and embedding provider. Check account deployment availability, credentials, tool-calling support, API shape, embedding dimensions, rate limits, and observed cost. The earlier GPT-6 Luna preference remains conditional on actual availability.
 3. Create `pyproject.toml`, the package skeleton, `.gitignore`, `.env.example`, validated settings, and a lockfile. Pin compatible dependency versions after a small connectivity/compatibility check.
 4. Define `Paper`, `Block`, `Section`, `Chunk`, `Entity`, `Relation`, `Evidence`, and `Answer` contracts. Specify versioning, source spans, PDF page numbering, and the output schema of each stage.
-5. Define separate preprocessing, indexing, retrieval, generation, MCP, and evaluation settings. Set explicit starting context budgets and tool-call limits.
+5. Define separate preprocessing, indexing, retrieval, reranking, generation, MCP, and evaluation settings. Set explicit starting context budgets and tool-call limits. Define reranking as an independent toggle (disabled in B0–B3), with a candidate cap, provider/model, tokenizer/input-length policy, and observable failure behavior. Verify hosted reranker access and cost before choosing the Phase 3 dependency.
 6. Choose 3 representative PDFs for development and a candidate manifest of at least 20. Include original-method papers and some related heterogeneity/optimization papers; include surveys when useful, while distinguishing their reported claims from original results.
 7. Record decisions and working assumptions in `docs/decisions.md` and `docs/corpus.md`.
 
@@ -64,9 +64,9 @@ Tasks:
 
 **README update:** Working install and baseline commands, selected model/embedding deployment, citation format, benchmark construction details.
 
-## Phase 3 — Hybrid retrieval
+## Phase 3 — Hybrid retrieval and optional reranking
 
-**Purpose:** Test whether lexical matching improves evidence discovery.
+**Purpose:** Test whether lexical matching improves evidence discovery, then independently test whether reranking improves evidence selection.
 
 Tasks:
 
@@ -75,12 +75,15 @@ Tasks:
 3. Add B1 configuration while preserving B0. Use the same generator, answer prompt, final evidence budget, and corpus-routing policy.
 4. Implement the retrieval metric runner on the development questions.
 5. Inspect method-name/acronym questions and failure cases. Tune candidate count and fusion settings using development questions only.
+6. Implement `retrieval/reranking.py` behind an independent settings toggle. Score bounded query-passage pairs after merging/deduplication and before final evidence packing; later reuse this stage after hierarchy/graph expansion. Preserve source IDs, original scores/ranks, and rerank scores/ranks. RRF remains rank fusion rather than model-based relevance scoring.
+7. Start with a candidate cap of 40 (development tuning range 30–50). Verify scientific-passage input limits using the selected tokenizer and log truncation. Keep final top-k, diversity rules, and evidence-token budget identical with reranking off/on. Confirm provenance and deterministic tie handling; record empty candidate sets and provider failures without silently substituting successful evaluation results.
+8. Add B1-R (`b1_hybrid_rerank.yaml`) and compare it with B1 on the same saved pre-reranking candidate pool. Keep B0/B1 core runs without reranking. Record candidate recall before reranking, final evidence metrics, answer quality, extra latency, and usage/cost. Freeze model/settings using development questions only.
 
-**Outputs:** BM25 index, hybrid service, B1 config, paired B0/B1 dev results.
+**Outputs:** BM25 index, hybrid service, configurable reranking adapter, B1/B1-R configs, separate paired B0/B1 and B1/B1-R dev results.
 
-**Acceptance gate:** Dense and lexical rankings can be inspected; fusion handles missing/empty lists; duplicated evidence does not inflate coverage; observed benefits and regressions are recorded.
+**Acceptance gate:** Dense, lexical, and reranked rankings can be inspected; fusion handles missing/empty lists; duplicated evidence does not inflate coverage; reranking preserves provenance and obeys candidate/input limits; off/on runs share candidates and final budgets; failures, benefits, regressions, latency, and cost are recorded.
 
-**README update:** Hybrid settings and actual retrieval behavior. Do not claim improved performance without measured support.
+**README update:** Hybrid and reranking settings, selected reranker, actual retrieval behavior, and separate comparisons. Do not claim improved performance without measured support. Enable reranking by default only if development results justify its quality/latency/cost tradeoff.
 
 ## Phase 4 — Document hierarchy and structure-aware retrieval
 
@@ -94,6 +97,7 @@ Tasks:
 4. Add B2: hybrid retrieval over section-aware chunks plus hierarchy expansion.
 5. If time permits, add B2a: section-aware chunks without expansion, so chunking and navigation can be analyzed separately.
 6. Compare on development questions using canonical gold spans. Review questions connecting methodology and experiments.
+7. Keep B2/B2a core runs without reranking. Route merged structural candidates through the shared optional reranking stage before packing; retain expansion reasons and source links. Add B2-R only if needed to isolate reranking without graph expansion.
 
 **Outputs:** Section chunk policy, hierarchy retrieval, B2/B2a configs, dev comparisons.
 
@@ -113,8 +117,9 @@ Tasks:
 4. Review a representative sample, including shared method/dataset names across papers. Store canonical entity identities with paper-specific relation evidence.
 5. Persist the graph and graph-to-block/section links. Implement bounded traversal, starting with one hop and a small candidate cap.
 6. Add B3 and inspect whether graph expansion supplies missing gold evidence or adds noise. Preserve exact relation provenance in traces.
+7. Keep B3 without reranking for the structure/graph ladder. Add B3-R (`b3_graph_rerank.yaml`) using the same merged, deduplicated, bounded B3 candidate pool; rerank supporting source passages, never graph labels alone. Compare coverage and cost on development questions independently of the B2/B3 graph comparison.
 
-**Outputs:** Graph data, validation report, graph retrieval, B3 config and dev results.
+**Outputs:** Graph data, validation report, graph retrieval, B3/B3-R configs and separate paired dev results.
 
 **Acceptance gate:** Every usable edge resolves to original supporting text; graph persistence/reload works; alias resolution is reviewed; traversal is bounded; no numeric ranking of methods is inferred from incompatible experiments.
 
@@ -135,6 +140,7 @@ Tasks:
 5. Set maximum tool calls, timeouts, retries, and a final answer/evidence token budget.
 6. Log observable tool calls and evidence IDs. Check citation existence in code; retain claim-support judgment for evaluation.
 7. Show a comparison requiring evidence from both methods and an unanswerable query. Inspect failure behavior when the server or provider is unavailable.
+8. Apply the same validated reranking configuration through MCP and direct evaluation. Include reranking scores/ranks in evidence metadata and configuration, candidate IDs, latency, usage, and any explicit interactive fallback in traces. No additional reranking MCP tool is required.
 
 **Outputs:** MCP server, real client integration, agent CLI, documented execution traces.
 
@@ -149,11 +155,11 @@ Tasks:
 Tasks:
 
 1. Confirm the frozen benchmark, relevance mapping rule, human scoring rubric, and applicable denominators.
-2. Run B0–B3, plus B2a if implemented, using a fixed retrieval-and-answer pipeline. Keep the corpus, embedding model, generator, prompt, and final evidence-token budget constant.
-3. Save retrieved evidence IDs/spans, scores, answer text, citations, configuration, index version, token usage, cost, and latency for each question.
+2. Run B0–B3, plus B2a if implemented, with reranking disabled through a fixed retrieval-and-answer pipeline. Separately run B1-R/B3-R (and optional B2-R) against their matching unreranked configurations. Reuse identical pre-reranking candidate pools within each pair; hold candidate caps, source text, diversity rules, final top-k, and evidence-token budget constant. Keep the corpus, embedding model, generator, and prompt constant across comparisons. Freeze all choices on development questions before test runs.
+3. Save pre-reranking candidate IDs/spans and original ranks/scores, final evidence IDs/spans and rerank scores/ranks, answer text, citations, configuration, index version, token usage, cost, and latency for each question. Report reranking model/version, input truncation, latency, usage/cost, and failures separately from totals.
 4. Score precision@5, evidence-group recall@5, complete evidence coverage, answer correctness, groundedness, citation support, and abstention. Exclude unanswerable questions from positive-evidence retrieval aggregates.
 5. Evaluate the agent separately using the best supported retrieval configuration. Report additional tool calls, latency, evidence coverage, and failures.
-6. Report paired per-question results and macro averages with sample counts. Review regressions, not just improvements.
+6. Report paired per-question results and macro averages with sample counts. Separate dense/hybrid, structure, graph, and reranking effects; examine candidate recall before reranking as well as final evidence coverage. Review regressions, not just improvements, and report the latency/cost tradeoff without assuming reranking always helps.
 7. Write at least two observed failure cases with retrieved evidence, cause, attempted fix if any, and remaining limitation. Label any post-test changes and reruns explicitly rather than treating the old held-out set as fresh.
 
 **Outputs:** Run records, evaluation report, failure report, updated conclusions.
@@ -190,7 +196,8 @@ Tasks:
 | Benchmark size | 20 questions, 5 dev / 15 test | Phase 2 |
 | First user interface | CLI | Phase 0 |
 | MCP transport | Local stdio if supported by pinned FastMCP | Phase 6, interface agreed in Phase 0 |
-| Optional work | B2a before UI polish; reranker and table-result records later | After core gates |
+| Reranking | Configurable query-time stage; disabled in core ladder; B1-R/B3-R pairs | Provider check in Phase 0, implementation in Phase 3, graph pair in Phase 5 |
+| Optional work | B2a/B2-R before UI polish; table-result records later | After core gates |
 
 ## How we will work phase by phase
 
