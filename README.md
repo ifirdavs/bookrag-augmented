@@ -57,6 +57,7 @@ BookRAG introduces a BookIndex containing a document hierarchy, an entity graph,
 This is a **BookRAG-inspired implementation**, not a reproduction or a claim to reproduce its benchmark results. We will implement our own pipeline and cite the paper and any code consulted.
 
 At the architectural level, BookRAG’s central index contains:
+
 - A document tree.
 - An entity–relation graph.
 - Links connecting graph entities to document nodes.
@@ -228,11 +229,12 @@ These are working design decisions; lock exact versions after a compatibility ch
 | Contracts and settings | Pydantic and YAML | Validate stage inputs and configuration |
 | PDF parsing | PyMuPDF first; evaluate Docling if layout quality fails | Preserve page and bounding-box information |
 | Vector store | Local persistent Chroma | Small corpus, straightforward metadata filtering |
-| Keyword search | BM25 | Match method names, acronyms, and technical terms |
+| Keyword search | BM25 with versioned tokenized-chunk and settings files | Match method names, acronyms, and technical terms; reconstruct the in-memory scorer on load |
 | Fusion | Reciprocal Rank Fusion | Combine rankings without treating unlike scores as equivalent |
 | Reranking | Configurable relevance-reranker adapter; model/provider to verify | Rescore a bounded candidate pool against the query; evaluate separately from RRF |
 | Metadata and hierarchy | SQLite | Traceable paper, section, block, and chunk lookups |
 | Graph | NetworkX with JSON persistence | Small graph without another database service |
+| Graph–Tree Links | Indexed SQLite association tables | Map graph entity/relation IDs to original document-node IDs and supporting spans |
 | Generation and tool calls | Hosted model through a provider adapter | Keep deployment details outside retrieval logic |
 | Embeddings | One configured hosted embedding deployment | Use the same deployment across experiments |
 | MCP | Python FastMCP | Expose tools and resources through MCP |
@@ -247,6 +249,31 @@ PyMuPDF's documentation warns that extracted PDF text may differ from visual rea
 
 Primary documentation: [PyMuPDF text extraction](https://pymupdf.readthedocs.io/en/latest/recipes-text.html), [FastMCP Python repository](https://github.com/PrefectHQ/fastmcp), [Chroma documentation](https://docs.trychroma.com/).
 
+### Storage and production options
+
+The following storage choices are planned for the initial project. Production alternatives are migration options, not additional dependencies required for the course deliverable.
+
+| Data | Initial project storage | Production option |
+| --- | --- | --- |
+| **Hierarchical tree** and source metadata | SQLite tables containing paper/section/block IDs, parent links, document order, versions, and provenance | PostgreSQL is preferred for a shared service with concurrent writers and centralized database operations; use parent-ID relationships and recursive queries |
+| **BM25 retrieval data** | Versioned files containing tokenized chunks, stable chunk-ID ordering, tokenizer configuration/version, BM25 variant/parameters, and corpus/index identity | Elasticsearch manages text analysis, persistent lexical indexes, scoring statistics, and BM25 retrieval |
+| **Knowledge graph** | NetworkX in memory; nodes, edges, graph metadata, and attributes serialized into versioned JSON | Neo4j is suitable when persistent graph traversal and concurrent graph access become important |
+| **Graph–Tree Links** | Indexed SQLite association tables linking entity IDs to tree-node IDs, with separate relation-to-source evidence records | PostgreSQL association tables when hierarchy and graph use separate stores; Neo4j relationships when lightweight document nodes are represented alongside graph entities |
+
+**Hierarchical tree.** SQLite is the persistent source of truth for the initial tree, not merely a cache of an in-memory structure. Store parent IDs and sibling/document order so sections, subsections, paragraphs, tables, and figures can be reconstructed and navigated. PostgreSQL preserves this relational design and supports recursive queries for descendant/ancestor lookup. SQLite can also serve small production workloads; the preference for PostgreSQL applies to a shared service with heavier concurrency and operational requirements. If document nodes are moved into Neo4j, hierarchy can instead be represented through `CONTAINS` relationships.
+
+**BM25.** Persist tokenized chunks and tokenizer/BM25 settings as versioned artifacts under `artifacts/indexes/`; reconstruct the in-memory scorer when loading that index. Keep source text and provenance in SQLite. Query tokenization must use the same configuration as document tokenization. In production, submit chunk text and stable IDs to Elasticsearch and configure its analyzer and BM25 similarity; Elasticsearch handles its own tokenization, term statistics, on-disk inverted indexes, and search execution. We still own source provenance, configuration versioning, and synchronization with other indexes. An Elasticsearch migration is a new retrieval implementation and must be evaluated, since analyzer choices and BM25 variants can change scores and rankings.
+
+**Knowledge graph.** Persist the NetworkX graph using an explicit, versioned node-link JSON schema, including directed/multigraph flags, stable node IDs, relation IDs, edge keys where needed, and JSON-compatible attributes. Preserve multiple assertions and their paper-specific supporting evidence rather than overwriting edges between shared entities. Reload the JSON into NetworkX for bounded traversal. Neo4j is a suitable production property-graph database; choosing it depends on actual traversal, update, and concurrency needs.
+
+**NetworkX JSON to Neo4j.** The serialized JSON data can be imported to Neo4j, but NetworkX node-link JSON is not an automatic native Neo4j graph-import format. A mapping step must create graph nodes from the JSON node records, then create typed relationships by resolving each edge's source and target IDs. A Python importer can read the JSON and write batches through the Neo4j driver; alternatively, where APOC is available, `apoc.load.json` can parse the JSON and Cypher can construct the graph. `apoc.import.json` expects APOC's graph-export format, so it requires conversion rather than direct use on arbitrary NetworkX JSON. Map node types to labels and relation types to approved relationship types, preserve application IDs, direction, relation identity, and provenance, and flatten nested attributes or model them as separate records to fit Neo4j property types. Verify node/edge counts and source links after migration. This is a documented migration route; no importer is implemented yet.
+
+**Graph–Tree Links.** These are explicit associations between semantic graph entities and the document nodes where their evidence occurs. Persist a many-to-many mapping such as `entity_node_links(entity_id, tree_node_id, paper_id, document_version)` in SQLite, indexed for lookup in both directions. Relation evidence must additionally retain supporting block IDs and spans; a general entity mention does not by itself prove a relation. Keep the entity-ID registry and source-node records available for referential validation when loading a graph snapshot. Export these mappings with the corresponding graph/tree version so references cannot silently point to a different parse. They do not require a separate database service.
+
+In production with PostgreSQL and Neo4j kept separate, store these associations in PostgreSQL and use stable application IDs to resolve Neo4j entities; validate cross-store references in the ingestion/application layer because database foreign keys cannot enforce them across services. If document nodes are also represented in Neo4j, model entity-to-document links as `EVIDENCED_IN` relationships, retaining paper/version/block IDs that resolve to the original content. A lightweight document node may act as a reference to PostgreSQL content; copying all PDF text into Neo4j is not required. Relationship evidence can use explicit assertion/evidence nodes when multiple source passages must be represented.
+
+Storage references: [PostgreSQL recursive queries](https://www.postgresql.org/docs/current/queries-with.html), [Elasticsearch index storage](https://www.elastic.co/docs/manage-data/data-store/index-basics), [Elasticsearch BM25 similarity](https://www.elastic.co/docs/reference/elasticsearch/index-settings/similarity), [NetworkX node-link JSON](https://networkx.org/documentation/stable/reference/readwrite/generated/networkx.readwrite.json_graph.node_link_data.html), [Neo4j property-graph concepts](https://neo4j.com/docs/getting-started/appendix/graphdb-concepts/), [Neo4j APOC JSON loading and import](https://neo4j.com/docs/apoc/current/import/load-json/).
+
 ## 7. Data contracts and provenance
 
 Define these contracts before implementing the parser and indexes.
@@ -259,6 +286,7 @@ Define these contracts before implementing the parser and indexes.
 | `Chunk` | `chunk_id`, policy, text, section ID/path, source block spans, token count |
 | `Entity` | `entity_id`, type, canonical label, aliases, supporting block IDs |
 | `Relation` | subject, predicate, object, supporting block spans, extraction confidence, review status |
+| `GraphTreeLink` | entity ID, tree-node ID, paper ID, document version; relation evidence separately retains source block spans |
 | `Evidence` | evidence ID, paper, section, pages, source spans, text, retrieval origin and score, optional rerank score/rank |
 | `Answer` | answer text, citation-to-evidence map, evidence sufficiency, usage and execution trace |
 
