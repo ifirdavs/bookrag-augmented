@@ -1,0 +1,6 @@
+# Fields here are merged with configs/default.yaml; this file wins on conflicts.
+retrieval:
+  mode: dense
+  routing: disabled
+reranking:
+  enabled: false

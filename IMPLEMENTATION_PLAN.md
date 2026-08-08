@@ -1,8 +1,8 @@
 # FedResearch implementation plan
 
-Status: **planning only**. This file turns the [README](../README.md) into an ordered build plan. No application implementation is included in this planning deliverable.
+Status: **Phases 0–2 implemented and verified live** (2026-10-15). The full 20-paper / 657-chunk index is active with Atlas Voyage 4 Large at 2048 dimensions. Claude generated five development answers with valid citation IDs (four sufficient, one partial), and a separate unsupported-measurement check correctly abstained. Optional rerank-3 has an initial paired candidate-replay measurement. Atlas bulk access now works after the user's billing update. Semantic adjudication and held-out evaluation remain for the evaluation phase. MCP, course/video requirements and failure quotas remain excluded. See [phase status](reports/phase_status.md) and [development results](reports/evaluation.md).
 
-Work through the phases sequentially. Each phase produces a reviewable result, updates the README, and passes its acceptance gate before the next phase begins. The 14-day schedule is provisional, not a commitment to a known deadline.
+Work through the phases sequentially. Each phase produces a reviewable result, updates the README, and passes its acceptance gate before the next phase begins. There is no mandatory deadline or day allocation; keep the implementation focused on grounded answers and measured retrieval improvements.
 
 ## Phase 0 — Foundation and design freeze
 
@@ -10,15 +10,15 @@ Work through the phases sequentially. Each phase produces a reviewable result, u
 
 Tasks:
 
-1. Check the original course rubric: allowed libraries, originality requirements, corpus minimum, agent requirements, MCP requirements, metrics, report format, and demo/video duration. Save a requirement-to-deliverable checklist.
-2. Confirm the hosted generation and embedding provider. Check account deployment availability, credentials, tool-calling support, API shape, embedding dimensions, rate limits, and observed cost. The earlier GPT-6 Luna preference remains conditional on actual availability.
+1. Follow the user-agreed scope in `docs/requirements.md`: grounded FL answers, hybrid search, BookRAG-inspired structure, a bounded direct agent and controlled evaluation. No course-rubric, video, MCP or failure-count requirement applies.
+2. Use Claude Haiku 5.5 through the official Anthropic SDK and `ANTHROPIC_API_KEY`. Use Voyage 4 Large at 2048 dimensions for document and query embeddings, with `VOYAGE_API_KEY`. Check access, structured outputs, dimensions, input limits and observed usage before corpus indexing.
 3. Create `pyproject.toml`, the package skeleton, `.gitignore`, `.env.example`, validated settings, and a lockfile. Pin compatible dependency versions after a small connectivity/compatibility check.
-4. Define `Paper`, `Block`, `Section`, `Chunk`, `Entity`, `Relation`, `Evidence`, and `Answer` contracts. Specify versioning, source spans, PDF page numbering, and the output schema of each stage.
-5. Define separate preprocessing, indexing, retrieval, reranking, generation, MCP, and evaluation settings. Set explicit starting context budgets and tool-call limits. Define reranking as an independent toggle (disabled in B0–B3), with a candidate cap, provider/model, tokenizer/input-length policy, and observable failure behavior. Verify hosted reranker access and cost before choosing the Phase 3 dependency.
-6. Choose 3 representative PDFs for development and a candidate manifest of at least 20. Include original-method papers and some related heterogeneity/optimization papers; include surveys when useful, while distinguishing their reported claims from original results.
+4. Define the current `Paper`, `Block`, `Section`, `Chunk`, `Evidence` and `Answer` contracts. Specify versioning, source spans and PDF page numbering. Add graph contracts in Phase 5 when they are used.
+5. Configure preprocessing, embeddings, retrieval, generation and evaluation. Experiment files merge their fields with `default.yaml`, overriding conflicts without an inheritance mechanism. The optional rerank-3 adapter/settings are implemented and access-verified; add agent settings when that phase is implemented.
+6. Use the confirmed 20-paper corpus and FedAvg/FedProx/SCAFFOLD as representatives. Expand with relevant original methods only when desired questions expose corpus coverage gaps; distinguish surveys from original results.
 7. Record decisions and working assumptions in `docs/decisions.md` and `docs/corpus.md`.
 
-**Outputs:** Package foundation, configuration draft, schema definitions, initial manifest, verified requirements checklist.
+**Outputs:** Package foundation, configuration draft, schema definitions, initial manifest, agreed scope checklist.
 
 **Acceptance gate:** A local package import works; required provider calls are feasible; manifest entries are uniquely identifiable; every downstream artifact has a defined source-provenance contract.
 
@@ -30,7 +30,7 @@ Tasks:
 
 Tasks:
 
-1. Acquire selected PDFs and record source URL, version, retrieval date, checksum, title, authors, and year. Detect duplicate files and multiple versions of the same paper.
+1. Start with the existing 20 PDFs in `data/raw/<paper_id>.pdf`. Keep only paper ID, title, year, source URL, document version, SHA-256 and method names in the manifest. Check file identities and duplicate versions; no acquisition commands are needed.
 2. Parse the 3 development PDFs into text blocks with page and bounding-box metadata. Inspect title pages, two-column body pages, headings, references, and at least one experimental-results page.
 3. Check for mixed columns, missing text, repeated headers/footers, hyphenation, and unsupported tables. Preserve original text/provenance through cleaning.
 4. Implement heading detection and parent/child section relationships using numbering and font/layout cues. Use explicit fallback sections when detection is uncertain.
@@ -51,7 +51,7 @@ Tasks:
 Tasks:
 
 1. Batch embeddings and cache them by document/chunk/configuration/model identity.
-2. Build persistent dense chunk retrieval and SQLite provenance lookup. Create a lightweight paper metadata/abstract search index, but keep experimental routing policy explicit.
+2. Build persistent dense chunk retrieval and SQLite provenance lookup. Search the full corpus unless an explicit filter is supplied; keep automatic routing disabled.
 3. Implement `RetrievalService` with query, filters, mode, top-k, and evidence budget. Return typed evidence records.
 4. Add a fixed answer pipeline: retrieve, pack evidence, call the hosted model, validate citation IDs, and return answer plus evidence. This is the baseline, before agent planning.
 5. Implement a minimal `ask` CLI and an insufficient-evidence response.
@@ -62,7 +62,7 @@ Tasks:
 
 **Acceptance gate:** An index can be saved/reloaded; filters work; representative questions return original supporting text; citations resolve correctly; an absent answer is handled; benchmark annotations do not depend on chunk policy.
 
-**README update:** Working install and baseline commands, selected model/embedding deployment, citation format, benchmark construction details.
+**README update:** Working install and baseline commands, selected generation and embedding models, citation format, benchmark construction details.
 
 ## Phase 3 — Hybrid retrieval and optional reranking
 
@@ -75,7 +75,7 @@ Tasks:
 3. Add B1 configuration while preserving B0. Use the same generator, answer prompt, final evidence budget, and corpus-routing policy.
 4. Implement the retrieval metric runner on the development questions.
 5. Inspect method-name/acronym questions and failure cases. Tune candidate count and fusion settings using development questions only.
-6. Implement `retrieval/reranking.py` behind an independent settings toggle. Score bounded query-passage pairs after merging/deduplication and before final evidence packing; later reuse this stage after hierarchy/graph expansion. Preserve source IDs, original scores/ranks, and rerank scores/ranks. RRF remains rank fusion rather than model-based relevance scoring.
+6. The `retrieval/reranking.py` adapter and independent settings toggle are implemented using Atlas rerank-3; keep them shared across later retrieval modes. Score bounded query-passage pairs after merging/deduplication and before final evidence packing; later reuse this stage after hierarchy/graph expansion. Preserve source IDs, original scores/ranks, and rerank scores/ranks. RRF remains rank fusion rather than model-based relevance scoring.
 7. Start with a candidate cap of 40 (development tuning range 30–50). Verify scientific-passage input limits using the selected tokenizer and log truncation. Keep final top-k, diversity rules, and evidence-token budget identical with reranking off/on. Confirm provenance and deterministic tie handling; record empty candidate sets and provider failures without silently substituting successful evaluation results.
 8. Add B1-R (`b1_hybrid_rerank.yaml`) and compare it with B1 on the same saved pre-reranking candidate pool. Keep B0/B1 core runs without reranking. Record candidate recall before reranking, final evidence metrics, answer quality, extra latency, and usage/cost. Freeze model/settings using development questions only.
 
@@ -127,26 +127,24 @@ Tasks:
 
 **Scope fallback:** A curated evidence-backed graph is acceptable for a small corpus if documented honestly. Reduce relation breadth before sacrificing citation quality or evaluation.
 
-## Phase 6 — MCP server and bounded agent
+## Phase 6 — Bounded direct-function agent
 
-**Purpose:** Turn the retrieval pipeline into an agent-accessible research assistant.
+**Purpose:** Let the assistant gather missing evidence through bounded direct retrieval calls.
 
 Tasks:
 
-1. Build the FastMCP server with `search_papers`, `retrieve_evidence`, and `fl://corpus/statistics`.
-2. Make the server wrappers call the existing retrieval service. Choose and document local transport and process lifecycle.
-3. Verify tool discovery, argument validation, returned evidence records, error handling, and resource reads using a real MCP client.
-4. Build the agent as an MCP client with model tool calling. Handle paper discovery, scoped evidence gathering, and a missing-evidence follow-up.
-5. Set maximum tool calls, timeouts, retries, and a final answer/evidence token budget.
-6. Log observable tool calls and evidence IDs. Check citation existence in code; retain claim-support judgment for evaluation.
-7. Show a comparison requiring evidence from both methods and an unanswerable query. Inspect failure behavior when the server or provider is unavailable.
-8. Apply the same validated reranking configuration through MCP and direct evaluation. Include reranking scores/ranks in evidence metadata and configuration, candidate IDs, latency, usage, and any explicit interactive fallback in traces. No additional reranking MCP tool is required.
+1. Define function-tool schemas around the shared retrieval service. `retrieve_evidence` supplies source passages; `search_papers` is optional metadata discovery. Add section navigation only if required by actual questions.
+2. Implement model tool calling with the selected Claude generation model. Tool handlers call local package functions directly; no MCP server, client or resource implementation is included.
+3. Validate discovery/scope selection, evidence retrieval, argument errors and citation provenance through actual direct tool calls.
+4. Bound tool calls, retries, execution time and evidence tokens. Reuse the same reranking and retrieval settings as fixed evaluation.
+5. Log calls, arguments, evidence IDs, latency and model usage. Return cited answers, partial answers or insufficient evidence according to the gathered sources.
+6. Evaluate comparisons and missing-evidence behavior separately from the fixed B0–B3 experiment ladder. Correct abstention is a successful outcome.
 
-**Outputs:** MCP server, real client integration, agent CLI, documented execution traces.
+**Outputs:** Direct agent runner/CLI, function schemas, tests and observable execution traces.
 
-**Acceptance gate:** Calls travel through MCP; tools and resource work; the agent cannot loop indefinitely; invalid citations are rejected/repaired within a bounded process; missing evidence leads to a qualified answer or abstention.
+**Acceptance gate:** The agent calls the real shared retrieval functions, respects budgets, resolves source citations and terminates with an evidence-grounded result. No MCP wrapper is required or implemented. It may be discussed only as a future extension outside this project.
 
-**README update:** Actual launch/connect commands, interface examples, supported agent behaviors, and limits.
+**README update:** Actual agent commands, supported behavior, limits and separate measurements.
 
 ## Phase 7 — Controlled evaluation and analysis
 
@@ -154,15 +152,15 @@ Tasks:
 
 Tasks:
 
-1. Confirm the frozen benchmark, relevance mapping rule, human scoring rubric, and applicable denominators.
+1. Confirm the frozen benchmark, relevance mapping rule, human scoring guide, and applicable denominators.
 2. Run B0–B3, plus B2a if implemented, with reranking disabled through a fixed retrieval-and-answer pipeline. Separately run B1-R/B3-R (and optional B2-R) against their matching unreranked configurations. Reuse identical pre-reranking candidate pools within each pair; hold candidate caps, source text, diversity rules, final top-k, and evidence-token budget constant. Keep the corpus, embedding model, generator, and prompt constant across comparisons. Freeze all choices on development questions before test runs.
 3. Save pre-reranking candidate IDs/spans and original ranks/scores, final evidence IDs/spans and rerank scores/ranks, answer text, citations, configuration, index version, token usage, cost, and latency for each question. Report reranking model/version, input truncation, latency, usage/cost, and failures separately from totals.
 4. Score precision@5, evidence-group recall@5, complete evidence coverage, answer correctness, groundedness, citation support, and abstention. Exclude unanswerable questions from positive-evidence retrieval aggregates.
 5. Evaluate the agent separately using the best supported retrieval configuration. Report additional tool calls, latency, evidence coverage, and failures.
 6. Report paired per-question results and macro averages with sample counts. Separate dense/hybrid, structure, graph, and reranking effects; examine candidate recall before reranking as well as final evidence coverage. Review regressions, not just improvements, and report the latency/cost tradeoff without assuming reranking always helps.
-7. Write at least two observed failure cases with retrieved evidence, cause, attempted fix if any, and remaining limitation. Label any post-test changes and reruns explicitly rather than treating the old held-out set as fresh.
+7. Document any failures actually observed, with evidence, cause, attempted fixes and remaining limitations. Do not fabricate or induce failures or impose a reporting quota. If no failures are observed, state that result for the tested questions without claiming universal correctness. Label post-test changes/reruns explicitly.
 
-**Outputs:** Run records, evaluation report, failure report, updated conclusions.
+**Outputs:** Run records, evaluation report, observed-limitations report, updated conclusions.
 
 **Acceptance gate:** Results can be traced to the exact corpus/index/configuration; scores use declared rules; claims match the data; missing runs and failures remain visible.
 
@@ -176,11 +174,12 @@ Tasks:
 
 1. Update the README to show what is implemented and remove or label obsolete planned commands.
 2. Verify installation and a complete small-corpus workflow in a clean environment. Keep credentials external and document index rebuilding.
-3. Prepare demonstrations: one method explanation, one comparison, and one corpus-wide synthesis. Show source evidence, PDF pages, MCP calls, and one insufficient-evidence example.
+3. Prepare useful example queries: a method explanation, a comparison and a bounded corpus synthesis. Show source evidence/PDF pages and direct agent calls where applicable. Include an abstention example to demonstrate appropriate evidence limits.
 4. Explain the baseline and ablations, strongest result, regression/failure cases, and practical limits.
-5. Prepare the required recording and submission artifacts using the verified assignment rubric. Cite research and dependencies consulted.
+5. Provide the reproducible package, setup/configuration guide and evaluation artifacts. Cite research and dependencies consulted. No video or course submission checklist is required.
+6. Merge useful content from temporary `docs/` notes into the README and final reports, rewrite every link, and remove `docs/` as requested. Keep the README Python file guide accurate.
 
-**Outputs:** Final README, demo guide, required recording/report, reproducible repository.
+**Outputs:** Final README, example-query guide, evaluation report, reproducible repository.
 
 **Acceptance gate:** A new reader can obtain the corpus, configure credentials, build indexes, run a cited answer, and reproduce the documented evaluation procedure.
 
@@ -189,18 +188,18 @@ Tasks:
 | Decision | Working default | Resolve during |
 | --- | --- | --- |
 | Project name | FedResearch | Phase 0 |
-| Corpus | 20+ text-based FL papers; 3 development examples | Phase 0–1 |
-| Provider and deployment | Hosted generation and embeddings; verify earlier preference | Phase 0 |
+| Corpus | Confirmed 20-paper corpus; expand for demonstrated coverage needs | Confirmed |
+| Generation and embeddings | Claude Haiku 5.5; Voyage 4 Large, 2048 dimensions | Index, cited development answers and baseline diagnostics verified live |
 | PDF parser | PyMuPDF, with layout quality gate | Phase 1 |
 | Retrieval storage | Chroma, SQLite, BM25, NetworkX | Phase 0 compatibility check |
 | Benchmark size | 20 questions, 5 dev / 15 test | Phase 2 |
 | First user interface | CLI | Phase 0 |
-| MCP transport | Local stdio if supported by pinned FastMCP | Phase 6, interface agreed in Phase 0 |
-| Reranking | Configurable query-time stage; disabled in core ladder; B1-R/B3-R pairs | Provider check in Phase 0, implementation in Phase 3, graph pair in Phase 5 |
+| Agent integration | Direct function calls; MCP outside implementation scope | Confirmed |
+| Reranking | Atlas rerank-3 implemented; disabled in core ladder; B0-R/B1-R/B3-R pairs | Access and initial paired B0-R dev replay verified; hybrid/graph pairs remain |
 | Optional work | B2a/B2-R before UI polish; table-result records later | After core gates |
 
 ## How we will work phase by phase
 
-For each implementation session: identify the phase and its acceptance gate, implement its bounded scope, verify consequential behavior, inspect outputs, and update documentation. Do not start all folders as placeholder code. Add modules when needed and keep shared contracts stable.
+For each implementation session: keep the code small and direct, implement only the current phase, reuse library features and shared logic, verify consequential behavior, inspect outputs, and update documentation. Do not start all folders as placeholder code. Add modules when needed and keep shared contracts stable.
 
-The next session begins with **Phase 0**, not graph extraction or agent orchestration. Its concrete result is a runnable package foundation and verified choices for the corpus and hosted model access.
+The next implementation batch is Phase 3 hybrid retrieval followed by Phase 4 structure-aware retrieval. Preserve the saved B0 baseline and current corpus/models/prompt/budgets, compare on development questions, and leave the frozen held-out set for final evaluation. Human semantic/annotation review remains recommended; it does not require delaying the next engineering phase.

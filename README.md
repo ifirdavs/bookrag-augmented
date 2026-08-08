@@ -2,7 +2,7 @@
 
 **A structure-aware, agentic RAG assistant for federated-learning research papers.**
 
-Status: **planning only**. This repository blueprint and implementation plan are the first deliverables. The application, commands, configuration files, indexes, and results described below are planned; they do not exist yet.
+Status: **Phases 0–2 implemented and verified live** (2026-10-15). All 20 PDFs (614 pages) are indexed as 657 fixed chunks with 2048-dimensional Atlas embeddings. The saved index reloads, five development questions produced cited answers, and an unsupported-measurement check returned insufficient evidence. Optional Atlas rerank-3 is implemented and has an initial paired retrieval check. One cross-paper answer remains partial; semantic evaluation and held-out testing remain open. Hybrid retrieval and Phases 4–8 are next. See [phase status](reports/phase_status.md) and [initial development results](reports/evaluation.md).
 
 FedResearch will answer technical questions using a curated PDF corpus, retrieve supporting passages, and cite the paper, section, and PDF page. It will combine corpus-level search with document hierarchy and a small evidence-linked knowledge graph inspired by BookRAG.
 
@@ -30,25 +30,27 @@ These examples become benchmark questions only after their answerability and sou
 
 Improvement is a hypothesis to test. An honest negative result is a valid project outcome.
 
-## 2. Scope and working course targets
+## 2. Agreed project scope
 
-The earlier discussion described a 14-day project, at least 20 PDFs, at least two FastMCP tools and one resource, at least 10 evaluation questions, three demonstrations, and a 15–20 minute video. We use these as working targets. The original assignment screenshots are not reproduced here; verify the exact rubric before implementation and update this section if necessary.
+Build a simple, grounded federated-learning research assistant and measure whether hybrid and BookRAG-inspired structure improve evidence retrieval and answer relevance. The user's agreed scope replaces the earlier course checklist. There is no assignment-rubric gate, video deliverable, mandatory deadline, MCP implementation, or quota of failure cases.
 
-| Area | Planned deliverable |
+| Area | Deliverable |
 | --- | --- |
-| Corpus | At least 20 curated, relevant, text-based FL papers; start development with 3 |
-| Baseline | Fixed-size chunks, dense retrieval, evidence-grounded answers |
-| Enhanced retrieval | BM25 plus vector search, section hierarchy, bounded evidence expansion, optional reranking |
-| Graph | Small set of typed entities and evidence-backed relations |
-| Agent | Bounded tool-calling loop that gathers evidence and produces a cited answer |
-| MCP | Two retrieval tools and one corpus-statistics resource |
-| Evaluation | Target 20 annotated questions: 5 development and 15 held-out test |
-| Demo | Paper-specific explanation, method comparison, corpus-level synthesis |
-| Documentation | Architecture, setup, decisions, evaluation, limitations, failure cases |
+| Corpus | The confirmed 20-paper corpus; expand only if relevant questions reveal coverage gaps |
+| Baseline | Fixed-size chunks, dense retrieval, original-source cited answers |
+| Enhanced retrieval | BM25 plus dense search with RRF; section-aware chunks and bounded hierarchy expansion |
+| Graph | A small evidence-linked graph where entity navigation demonstrably helps |
+| Agent | Bounded direct function/tool calls to the shared retrieval service |
+| Models | Claude Haiku 5.5 generation; Voyage 4 Large embeddings at 2048 dimensions |
+| Evaluation | 20 annotated questions: 5 development / 15 held-out; at least 10 useful comparison questions |
+| Documentation | Actual setup, architecture, measured results, limitations and any observed failures |
+| Optional future extension | An MCP wrapper for external clients; outside this project's implementation scope |
 
-Initial scope: English, text-based research PDFs; reliable prose and source citations. Tables enter only when their headers, cells, and context can be extracted faithfully. Unreliable tables are flagged. Equation interpretation, chart-image reasoning, OCR-heavy documents, exhaustive literature reviews, and a full reproduction of BookRAG are extensions.
+Initial scope: English, text-based research PDFs; reliable prose and source citations. Tables enter only when their headers, cells, and context can be extracted faithfully. Unreliable tables are flagged. Equation interpretation, chart-image reasoning, OCR-heavy documents, exhaustive literature reviews, and a complete BookRAG reproduction remain extensions.
 
-The system answers from its indexed corpus. It does not imply complete coverage of the federated-learning literature.
+Keep the same corpus, parser, embedding model, generator, test questions and evidence budget for controlled comparisons. Use the graph and agent only when their measured benefit justifies their complexity. Document failures that occur in real runs; never introduce failures to satisfy a reporting count. Negative questions evaluate successful abstention when the corpus lacks evidence.
+
+The selected corpus covers original methods, optimization/heterogeneity, personalization and fairness. It is sufficient for the current implementation and benchmark foundation; expansion will be motivated by actual coverage needs.
 
 ## 3. Relationship to BookRAG
 
@@ -89,10 +91,10 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["User Question<br><sub style='font-size:0.8em'>e.g., Compare FedProx and SCAFFOLD for non-IID data</sub>"] --> B["Agent and MCP client"]
-    B --> C["MCP retrieval server"]
+    A["User Question<br><sub style='font-size:0.8em'>e.g., Compare FedProx and SCAFFOLD for non-IID data</sub>"] --> B["Agent with direct retrieval tools"]
+    B --> C["Shared retrieval service"]
     C --> D["Corpus (indexed) papers search<br><sub style='font-size:0.8em'>Vector DB + keyword search</sub><br><hr><sub style='font-size:0.8em'>Find relevant papers and chunks</sub>"]
-    C --> E["BookRAG-inspired evidence retrieval<br><sub style='font-size:0.8em'>Section trees + entity links</sub><br><hr><sub style='font-size:0.8em'>Find precise evidence inside papers</sub>"]
+    C --> E["BookRAG-like evidence retrieval<br><sub style='font-size:0.8em'>Section trees + entity links</sub><br><hr><sub style='font-size:0.8em'>Find precise evidence inside papers</sub>"]
     D --> F["Vector and keyword indexes"]
     E --> F
     E --> G["Hierarchy and graph lookup"]
@@ -104,124 +106,71 @@ flowchart TD
     J --> K["Answer, evidence, or insufficient-evidence response"]
 ```
 
-The agent is an MCP **client**; the FastMCP server exposes retrieval capabilities. The retrieval service is also callable directly by evaluation code. This avoids duplicating algorithms and allows retrieval to be evaluated independently of agent behavior.
+The agent calls the shared retrieval service through direct function tools. The fixed baseline and evaluation code use the same service, so retrieval algorithms can be evaluated independently of agent behavior. MCP is not required and will not be implemented for this project; an external-client wrapper is a possible future extension.
 
-The lightweight paper index uses titles, abstracts, metadata, and optionally labeled generated summaries. It helps route questions to papers. Generated summaries and graph labels are navigation aids; final citations resolve to original source blocks.
+Baseline retrieval searches chunks across all papers unless the caller supplies a filter. Paper metadata is limited to fields used for citations, version checks and filtering. Optional later paper discovery can use titles and method names; generated summaries and graph labels would only guide navigation, with citations resolving to original source blocks.
 
-## 5. Planned repository structure
+## 5. Python file guide
 
-Only this README and `docs/IMPLEMENTATION_PLAN.md` exist at the planning stage. Add other files when their phase starts.
+This describes the files that exist now. Each Python module and function has a docstring. Small supporting functions start with `Helper to ...:`; the main pipeline functions describe the operation they perform. Paths in this table are relative to `src/fedresearch/`.
 
-```text
-fedresearch/
-  README.md
-  pyproject.toml                    # Dependencies and package entry points
-  uv.lock                          # Reproducible dependency resolution
-  .env.example                     # Credential variable names, no secrets
-  .gitignore
-  configs/
-    default.yaml                   # Shared runtime and pipeline settings
-    experiments/
-      b0_dense.yaml
-      b1_hybrid.yaml
-      b2_structure.yaml
-      b3_graph.yaml
-      b1_hybrid_rerank.yaml         # Paired reranking experiment; same B1 candidates
-      b3_graph_rerank.yaml          # Paired reranking experiment; same B3 candidates
-  src/
-    fedresearch/
-      __init__.py
-      cli.py                       # Commands that delegate to services
-      settings.py                  # Validate config and environment variables
-      schemas.py                   # Shared data contracts
-      corpus/
-        manifest.py                # Sources, paper IDs, checksums, duplicate checks
-      preprocessing/
-        pdf_parser.py              # Text, page positions, layout metadata
-        cleaning.py                # Repeated headers, footers, whitespace
-        sections.py                # Heading detection and hierarchy
-        chunking.py                # Fixed and section-aware chunk policies
-        validation.py              # Empty pages, reading order, parse diagnostics
-      indexing/
-        pipeline.py                # Build stages, caching, rebuild decisions
-        embeddings.py              # Batched embedding calls and caching
-        vector_index.py
-        bm25_index.py
-        paper_index.py              # Corpus routing index
-        graph_builder.py           # Entity aliases, relation extraction, links
-      storage/
-        metadata_store.py          # SQLite paper/block/section lookup
-        graph_store.py             # Serializable graph persistence
-      retrieval/
-        service.py                 # Shared interface for all retrieval modes
-        dense.py
-        hybrid.py                  # BM25, dense retrieval, reciprocal rank fusion
-        structure.py               # Parent, child, adjacent-block expansion
-        graph.py                   # Bounded graph traversal to source evidence
-        reranking.py               # Optional query-passage relevance scoring
-        evidence.py                # Deduplication, packing, citation-ready records
-      llm/
-        client.py                  # Provider adapter, retries, usage accounting
-        prompts/
-          answer.md
-          planner.md
-          extract_relations.md
-      agent/
-        runner.py                  # Bounded tool-calling loop and MCP client
-        citations.py               # Citation existence and provenance validation
-      mcp/
-        server.py
-        tools.py                   # Thin wrappers over retrieval.service
-        resources.py
-      evaluation/
-        dataset.py                 # Benchmark schema and split validation
-        retrieval_metrics.py
-        answer_scoring.py
-        runner.py
-        reporting.py
-  data/
-    corpus_manifest.jsonl          # Track metadata and download instructions
-    raw/                           # Local PDFs; excluded from Git by default
-    processed/                     # Canonical parsed documents; generated
-    benchmarks/
-      dev.jsonl
-      test.jsonl
-  artifacts/
-    indexes/                       # Generated versioned indexes
-    runs/                          # Retrieval, answer, tool and usage records
-  reports/
-    evaluation.md
-    failure_cases.md
-  tests/
-    fixtures/                      # Small permissible samples, no cloud credentials
-    unit/
-    integration/
-  docs/
-    IMPLEMENTATION_PLAN.md
-    decisions.md
-    corpus.md
-    evaluation.md
-    demo.md
-```
-
-### Boundaries
-
-| Module | Responsibility | Boundary |
+| Python file | What it does | Why it is needed |
 | --- | --- | --- |
-| `corpus` | Know which papers and versions are included | No retrieval or generation |
-| `preprocessing` | Turn PDFs into traceable blocks, sections, and chunks | No index or answer construction |
-| `indexing` | Build searchable representations from processed documents | No user-question answering |
-| `storage` | Persist and resolve document identities and provenance | No retrieval policy |
-| `retrieval` | Return evidence for a query under a budget | No final answer generation |
-| `agent` | Choose tools, collect evidence, generate and validate citations | No parsing or index mutation |
-| `mcp` | Expose retrieval and corpus metadata | No second implementation of retrieval |
-| `evaluation` | Run experiments against frozen source annotations | No training or tuning on held-out labels |
+| [`cli.py`](src/fedresearch/cli.py) | Defines commands and prints their results | Provides one entry point while keeping the actual work in services |
+| [`settings.py`](src/fedresearch/settings.py) | Loads YAML, experiment overrides and environment settings | Keeps model choices and budgets consistent across runs |
+| [`schemas.py`](src/fedresearch/schemas.py) | Defines papers, blocks, chunks, evidence and answers | Preserves typed source identities and citation contracts |
+| [`util.py`](src/fedresearch/util.py) | Hashes identities/files and reads/writes JSON | Shares the few persistence helpers used by several stages |
+| [`corpus/manifest.py`](src/fedresearch/corpus/manifest.py) | Reads metadata and checks the existing local PDFs | Pins the exact papers/versions being processed |
+| [`preprocessing/pdf_parser.py`](src/fedresearch/preprocessing/pdf_parser.py) | Extracts text/layout, fixes column order and records diagnostics | Turns PDFs into canonical evidence with page coordinates |
+| [`preprocessing/cleaning.py`](src/fedresearch/preprocessing/cleaning.py) | Cleans whitespace/hyphenation with a raw-offset map | Lets cleaned chunks still cite the original extracted text |
+| [`preprocessing/sections.py`](src/fedresearch/preprocessing/sections.py) | Detects headings and assigns section/parent links | Provides section citations and the hierarchy used in later retrieval |
+| [`preprocessing/chunking.py`](src/fedresearch/preprocessing/chunking.py) | Creates overlapping fixed windows and retains source spans | Establishes the conventional RAG baseline |
+| [`preprocessing/validation.py`](src/fedresearch/preprocessing/validation.py) | Checks source mappings, page ranges and serious warnings | Prevents invalid parses from silently entering an index |
+| [`indexing/pipeline.py`](src/fedresearch/indexing/pipeline.py) | Runs preprocessing/index builds and validates saved versions | Coordinates stages and activates only complete compatible indexes |
+| [`indexing/embeddings.py`](src/fedresearch/indexing/embeddings.py) | Caches vectors and embeds missing chunks in batches | Avoids repeating successful API calls after a rebuild/interruption |
+| [`indexing/vector_index.py`](src/fedresearch/indexing/vector_index.py) | Stores/searches vectors in persistent Chroma | Supplies dense candidate retrieval and metadata filters |
+| [`storage/metadata_store.py`](src/fedresearch/storage/metadata_store.py) | Stores paper/section/block/chunk records in SQLite | Resolves vector hits and citations back to original sources |
+| [`retrieval/service.py`](src/fedresearch/retrieval/service.py) | Applies filters, retrieves, deduplicates, optionally reranks and packs evidence | Gives answers, evaluation and the future agent one retrieval implementation |
+| [`retrieval/evidence.py`](src/fedresearch/retrieval/evidence.py) | Removes source overlap and constructs evidence under the final budget | Prevents duplicate passages and retains citation-ready provenance |
+| [`retrieval/reranking.py`](src/fedresearch/retrieval/reranking.py) | Calls Atlas `rerank-3` and returns validated indices/scores/usage | Adds optional query-passage ranking without changing source text |
+| [`llm/client.py`](src/fedresearch/llm/client.py) | Wraps the official Claude/Voyage SDKs and records usage | Isolates provider requests, vector checks and sanitized errors |
+| [`llm/answering.py`](src/fedresearch/llm/answering.py) | Retrieves evidence, generates structured claims and checks citations | Produces the fixed baseline answer before agent planning |
+| [`evaluation/dataset.py`](src/fedresearch/evaluation/dataset.py) | Loads question labels, verifies source quotes and enforces the held-out freeze | Keeps benchmark labels independent of chunking/retrieval |
+| [`evaluation/retrieval_metrics.py`](src/fedresearch/evaluation/retrieval_metrics.py) | Computes span-based precision/recall/coverage diagnostics | Measures retrieval against the same original evidence across experiments |
+| [`evaluation/runner.py`](src/fedresearch/evaluation/runner.py) | Runs questions and saves evidence, answers, scores, timings and failures | Makes comparisons inspectable and repeatable |
+| `__init__.py` files in each package | Mark Python packages; the root also defines the version | Support package imports; they contain no pipeline logic |
 
-Reusable logic belongs in the package. CLI commands are thin entry points. Notebooks, if added, are for exploration and reporting.
+The answer prompt lives in `src/fedresearch/llm/prompts/answer.md`. Settings live in `configs/default.yaml`. `configs/experiments/b0_dense.yaml` keeps reranking off; `b0_dense_rerank.yaml` enables it with the same dense candidate pool and final budget. BM25, structural expansion, graph and agent modules will be added in their phases.
+
+Tests are separate from application code:
+
+| Test file | Purpose |
+| --- | --- |
+| `tests/test_pipeline.py` | Generated-PDF integration checks for parsing/provenance, index persistence, filters, cache, reranking and citations |
+| `tests/test_embeddings_api.py` | Voyage embedding request/response handling, document/query roles and vector validation |
+| `tests/test_generation_api.py` | Claude structured responses, truncation/refusal handling and sanitized errors |
+| `tests/test_reranking_api.py` | Atlas rerank-3 request/response handling, index validation and empty-scope behavior |
+| `tests/test_settings.py` | Default/experiment YAML merging and path resolution |
+
+For a quick review, start with `cli.py` → `llm/answering.py` → `retrieval/service.py` → `retrieval/evidence.py`. Read `retrieval/reranking.py` for the optional ranking stage. `indexing/pipeline.py` is the build path; the PDF layout details are isolated under `preprocessing/`.
+
+### Temporary working notes in docs/
+
+These Markdown files are development notes, not runtime dependencies. The README is the main project guide.
+
+| File | Why it is kept during implementation | Final destination |
+| --- | --- | --- |
+| `docs/requirements.md` | Records the agreed scope so removed course/video/MCP requirements do not return | README scope |
+| `docs/decisions.md` | Records implementation choices and constraints between phases | README architecture/setup |
+| `docs/corpus.md` | Lists the pinned papers and parsing details | README corpus summary and preprocessing report |
+| `docs/models.md` | Holds current provider setup, limits and live-check notes | README setup and final evaluation report |
+| `docs/evaluation.md` | Defines source annotations, the held-out freeze and scoring rules before experiments | README evaluation protocol and final report |
+
+**Phase 8 cleanup:** merge the useful permanent content into the README and `reports/`, update every link, and remove `docs/`. Do not leave duplicate setup/scope documents in the completed project.
 
 ## 6. Proposed technology choices
 
-These are working design decisions; lock exact versions after a compatibility check in Phase 0.
+Phase 0–2 local dependencies are locked in `uv.lock` and tested with Python 3.13.1. Claude generation access is verified; corpus retrieval measurements are pending; later-phase dependencies remain working design choices.
 
 | Component | Initial choice | Rationale |
 | --- | --- | --- |
@@ -231,27 +180,26 @@ These are working design decisions; lock exact versions after a compatibility ch
 | Vector store | Local persistent Chroma | Small corpus, straightforward metadata filtering |
 | Keyword search | BM25 with versioned tokenized-chunk and settings files | Match method names, acronyms, and technical terms; reconstruct the in-memory scorer on load |
 | Fusion | Reciprocal Rank Fusion | Combine rankings without treating unlike scores as equivalent |
-| Reranking | Configurable relevance-reranker adapter; model/provider to verify | Rescore a bounded candidate pool against the query; evaluate separately from RRF |
+| Reranking | MongoDB Atlas `rerank-3`, switchable and verified with a small live call | Rescore a bounded candidate pool against the query; evaluate separately from RRF |
 | Metadata and hierarchy | SQLite | Traceable paper, section, block, and chunk lookups |
 | Graph | NetworkX with JSON persistence | Small graph without another database service |
 | Graph–Tree Links | Indexed SQLite association tables | Map graph entity/relation IDs to original document-node IDs and supporting spans |
-| Generation and tool calls | Hosted model through a provider adapter | Keep deployment details outside retrieval logic |
-| Embeddings | One configured hosted embedding deployment | Use the same deployment across experiments |
-| MCP | Python FastMCP | Expose tools and resources through MCP |
+| Generation and tool calls | Claude Haiku 5.5 through the Claude API | Use the official Anthropic SDK and structured answers |
+| Embeddings | Voyage 4 Large, 2048-dimensional float vectors | Use the same model for documents, queries and controlled comparisons |
 | First interface | CLI | Build the research pipeline before optional UI work |
 | Verification | pytest for consequential behavior | Protect provenance, retrieval, and integration boundaries |
 
-The earlier model preference is GPT-6 Luna via a hosted service. Treat it as a preference to verify against the actual account/provider: deployment availability, API compatibility, tool calling, embedding availability, and cost remain Phase 0 decisions. Do not hardcode an unverified model or deployment name. No local LLM is required for this plan.
+Generation uses `claude-haiku-5-5` with `ANTHROPIC_API_KEY` from the ignored `.env`. The official SDK handles requests and retries; Pydantic validates the structured answer. Embeddings use `voyage-4-large` through the official Voyage SDK with `VOYAGE_API_KEY`. Documents and questions use their respective retrieval input types, with silent truncation disabled. See [model setup](docs/models.md).
 
-Reranking is disabled by default for the core experiment ladder. Prefer a hosted reranker where practical; verify access, cost, input limits, and handling of scientific passages before selecting one. BookRAG's Qwen3-Reranker-4B is a reference choice, not a required dependency.
+Reranking uses MongoDB Atlas `rerank-3` through the same `VOYAGE_API_KEY` and official SDK as embeddings. It is disabled in B0 and the core experiment ladder so its effect can be measured separately. It scores the same bounded, deduplicated candidate pool before final evidence packing. Original ranks/scores, reranked ranks/scores, usage and latency are recorded; a provider error fails the run rather than silently skipping reranking. BookRAG's Qwen3-Reranker-4B remains a research reference.
 
 PyMuPDF's documentation warns that extracted PDF text may differ from visual reading order; multi-column layouts require inspection. We will inspect three representative FL papers before committing to a parser. A layout parser fallback is a response to observed failure, not a second default pipeline.
 
-Primary documentation: [PyMuPDF text extraction](https://pymupdf.readthedocs.io/en/latest/recipes-text.html), [FastMCP Python repository](https://github.com/PrefectHQ/fastmcp), [Chroma documentation](https://docs.trychroma.com/).
+Primary documentation: [PyMuPDF text extraction](https://pymupdf.readthedocs.io/en/latest/recipes-text.html), [Claude structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs), [Chroma documentation](https://docs.trychroma.com/).
 
-### Storage and production options
+### Storage options for Production
 
-The following storage choices are planned for the initial project. Production alternatives are migration options, not additional dependencies required for the course deliverable.
+The following storage choices are planned for the initial project. **Production alternatives** are migration options, not additional dependencies required for the course deliverable.
 
 | Data | Initial project storage | Production option |
 | --- | --- | --- |
@@ -268,6 +216,8 @@ The following storage choices are planned for the initial project. Production al
 
 **NetworkX JSON to Neo4j.** The serialized JSON data can be imported to Neo4j, but NetworkX node-link JSON is not an automatic native Neo4j graph-import format. A mapping step must create graph nodes from the JSON node records, then create typed relationships by resolving each edge's source and target IDs. A Python importer can read the JSON and write batches through the Neo4j driver; alternatively, where APOC is available, `apoc.load.json` can parse the JSON and Cypher can construct the graph. `apoc.import.json` expects APOC's graph-export format, so it requires conversion rather than direct use on arbitrary NetworkX JSON. Map node types to labels and relation types to approved relationship types, preserve application IDs, direction, relation identity, and provenance, and flatten nested attributes or model them as separate records to fit Neo4j property types. Verify node/edge counts and source links after migration. This is a documented migration route; no importer is implemented yet.
 
+**Neo4j code tradeoff.** Docker Compose starts the server, but the application still needs a Neo4j driver/credentials, node and relation imports/upserts, constraints, bounded Cypher traversal queries, and mapping of returned evidence IDs back to SQLite sources. These replace the NetworkX JSON save/load and in-process traversal implementation. For the current 20-paper scope, NetworkX remains the simpler planned graph store. If Neo4j is selected in Phase 5, implement one store rather than maintaining two. See [Neo4j driver queries](https://neo4j.com/docs/python-manual/current/query-simple/).
+
 **Graph–Tree Links.** These are explicit associations between semantic graph entities and the document nodes where their evidence occurs. Persist a many-to-many mapping such as `entity_node_links(entity_id, tree_node_id, paper_id, document_version)` in SQLite, indexed for lookup in both directions. Relation evidence must additionally retain supporting block IDs and spans; a general entity mention does not by itself prove a relation. Keep the entity-ID registry and source-node records available for referential validation when loading a graph snapshot. Export these mappings with the corresponding graph/tree version so references cannot silently point to a different parse. They do not require a separate database service.
 
 In production with PostgreSQL and Neo4j kept separate, store these associations in PostgreSQL and use stable application IDs to resolve Neo4j entities; validate cross-store references in the ingestion/application layer because database foreign keys cannot enforce them across services. If document nodes are also represented in Neo4j, model entity-to-document links as `EVIDENCED_IN` relationships, retaining paper/version/block IDs that resolve to the original content. A lightweight document node may act as a reference to PostgreSQL content; copying all PDF text into Neo4j is not required. Relationship evidence can use explicit assertion/evidence nodes when multiple source passages must be represented.
@@ -276,11 +226,11 @@ Storage references: [PostgreSQL recursive queries](https://www.postgresql.org/do
 
 ## 7. Data contracts and provenance
 
-Define these contracts before implementing the parser and indexes.
+The current schemas cover parsing, retrieval and cited answers. `Entity`, `Relation` and `GraphTreeLink` below are design targets for Phase 5; their classes will be added when graph functionality is implemented.
 
 | Record | Essential fields |
 | --- | --- |
-| `Paper` | `paper_id`, title, authors, year, source URL, document version, PDF checksum |
+| `Paper` | `paper_id`, title, year, source URL, document version, PDF checksum, method names |
 | `Block` | `block_id`, `paper_id`, document version, PDF page, bounding box, type, text, parse warnings |
 | `Section` | `section_id`, `paper_id`, title, parent ID, ordered block IDs, detection confidence |
 | `Chunk` | `chunk_id`, policy, text, section ID/path, source block spans, token count |
@@ -298,7 +248,7 @@ Missing or uncertain headings get an explicit fallback section. Unsupported tabl
 
 ## 8. Retrieval design
 
-1. **Paper discovery:** Search titles, abstracts, and metadata to identify candidate papers. Treat this as a soft routing signal; allow corpus-wide chunk fallback so a missed paper is not permanently excluded.
+1. **Paper scope:** Search all corpus chunks by default. Apply explicit paper/year/method filters only when requested. Optional later title/method discovery must preserve corpus-wide fallback.
 2. **Candidate retrieval:** Search dense and BM25 indexes; fuse ranked lists with RRF in enhanced modes.
 3. **Structure expansion:** Follow source section links to relevant neighboring blocks or bounded parent/child content. Avoid adding whole papers or large sections without regard to the context budget.
 4. **Graph expansion:** Resolve aliases, traverse a small number of evidence-backed relations, and retrieve their original supporting blocks. The graph never substitutes for the original text.
@@ -309,7 +259,7 @@ Missing or uncertain headings get an explicit fallback section. Unsupported tabl
 
 Initial retrieval settings to tune on development questions only: chunk size around 600 tokens, 100-token overlap for fixed chunks, 20 candidates from each retriever, RRF constant 60, final top 5 evidence items for retrieval metrics, and approximately 4,000 evidence tokens for generation. These are starting settings, not proven optimal values. Section-aware chunks target a similar size and split oversized sections.
 
-Add the reranking adapter after hybrid retrieval in Phase 3; reuse it after structure and graph expansion in later modes. Starting settings: `reranking.enabled: false`, `reranking.candidate_limit: 40` (tune within 30–50), and an explicitly configured provider/model and input-length limit. Keep final top-k and evidence-token budgets unchanged. Bound passage lengths using the reranker's tokenizer; log truncation so gold evidence is not silently lost. Provider failures must be recorded as failed reranking runs; any interactive fallback to the existing ranking must be explicit in the trace.
+The reranking adapter is implemented and can later be reused after structure and graph expansion. Current settings are `reranking.enabled: false`, `reranking.model: rerank-3` and SDK timeout/retry limits. The existing `retrieval.candidate_limit` also caps reranker inputs; there is no separate candidate-budget setting. B0 and B0-R use the same 20 candidates before deduplication. Phase 3 can test a shared 40-candidate cap for hybrid/reranked pairs. Keep final top-k and evidence-token budgets unchanged. Silent truncation is disabled; the API rejects over-limit inputs instead of dropping source text. Provider failures must be recorded as failed reranking runs; any interactive fallback to the existing ranking must be explicit in the trace.
 
 ## 9. Knowledge graph scope
 
@@ -326,33 +276,30 @@ Use a curated alias map for names such as FedAvg, Federated Averaging, FedProx, 
 
 Do not add generic `OUTPERFORMS` edges. Performance comparisons need compatible datasets, partitions, client participation, models, training budgets, metrics, and evaluation settings. Numeric experimental-result records are an optional extension with this context attached.
 
-## 10. Agent and MCP interface
+## 10. Bounded agent and direct retrieval tools
 
-### Minimum server contract
+The agent is a later-phase enhancement. It will use model function calling to invoke the shared `RetrievalService` directly. A conventional RAG answer needs one retrieval call; the agent can make bounded follow-up calls for comparisons, cross-section questions and missing evidence.
 
-| Component | Planned signature | Behavior |
-| --- | --- | --- |
-| Tool | `search_papers(query, year_from=None, year_to=None, method=None, limit=5)` | Return corpus paper candidates and metadata |
-| Tool | `retrieve_evidence(query, paper_ids=None, section_hint=None, mode="structure", top_k=5)` | Return citation-ready source passages through the shared retrieval service |
-| Resource | `fl://corpus/statistics` | Return paper count, coverage metadata, parse warnings, and index version |
+| Planned function tool | Behavior |
+| --- | --- |
+| `retrieve_evidence(query, paper_ids=None, section_hint=None, mode="structure", top_k=5)` | Gather citation-ready source passages through the shared retrieval service |
+| `search_papers(query, year_from=None, year_to=None, method=None, limit=5)` | Optional discovery/scope selection over paper metadata |
 
-`mode` supports `dense`, `hybrid`, `structure`, and `graph` once implemented. The server bounds limits and validates supplied paper IDs. Experiment settings, including context budgets, come from validated configuration.
+`retrieve_evidence` supplies the agent's evidence. `search_papers` is a useful optional discovery function; it is not required for every question. Corpus statistics can be supplied as local context when useful, with no resource-count requirement. An optional later `get_section` function can support bounded document navigation if needed.
 
-Reranking is a validated service setting shared by direct evaluation and MCP calls, not a separate MCP tool or retrieval mode. Return optional rerank scores/ranks with evidence and record the reranker configuration, candidate IDs, latency, and usage in execution traces.
+Modes become available as their phases are implemented. Reranking is a shared service setting, not a separate function or retrieval mode. Direct evaluation and agent calls use the same validated budgets, filters and source resolution.
 
-An optional later tool, `get_section(paper_id, section_id)`, supports explicit navigation under a size limit. Method comparison initially belongs to the agent: gather evidence for both methods, then synthesize. A separate `compare_methods` tool is unnecessary for the minimum deliverable.
+Start with at most four tool calls, timeouts, bounded retries, input validation, and a final answer/evidence token budget. Log tool names, arguments, returned evidence IDs, latency and usage; do not require private chain-of-thought. The agent gathers evidence, checks whether additional sources are needed, and returns supported claims or a qualified/insufficient-evidence response.
 
-### Agent behavior
+Code validates citation existence and original provenance; review checks whether the cited passage supports each claim. Evaluate agent behavior separately after choosing the best supported fixed retrieval mode.
 
-The agent identifies the information needed, calls the retrieval tools over MCP, inspects evidence sufficiency, and either gathers a missing source or answers. Start with a maximum of four tool calls, timeouts, bounded retries, and input validation. Record tool names, arguments, returned evidence IDs, latency, and token usage; do not require or expose private chain-of-thought.
-
-Validation has two distinct levels: code can check that citation IDs exist and resolve to supplied evidence; human evaluation checks whether that evidence actually supports the associated claim.
+MCP is outside this project's implementation scope. A future wrapper could expose these same functions for external clients, but it is not necessary for the direct agent and is not planned as a deliverable.
 
 ## 11. Evaluation plan
 
 ### Benchmark construction
 
-Target 20 questions: 5 development questions and 15 held-out test questions. Across the test set, include paper-specific questions, cross-section questions, cross-paper comparisons, corpus synthesis, and at least two unanswerable or misleading-premise questions. Ten questions is a fallback working course target, but provides weaker evidence.
+Target 20 questions: 5 development questions and 15 held-out test questions. Across the test set, include paper-specific questions, cross-section questions, cross-paper comparisons, corpus synthesis, and at least two unanswerable or misleading-premise questions. Keep at least ten useful questions if the benchmark is later reduced; the current target remains twenty.
 
 Annotate each question with:
 
@@ -369,6 +316,7 @@ Do not use retrieval output itself as the gold annotation. Freeze held-out label
 | Experiment | Change | What it tests |
 | --- | --- | --- |
 | B0 | Fixed chunks, dense retrieval | Conventional baseline |
+| B0-R | B0 plus rerank-3 on the same deduplicated candidates | Isolates reranking on the dense baseline |
 | B1 | Same chunks plus BM25 and RRF | Benefit of hybrid retrieval |
 | B2 | Section-aware chunks and bounded hierarchy expansion | Benefit of the structure package beyond B1 |
 | B3 | B2 plus evidence-linked graph expansion | Incremental benefit of the graph |
@@ -379,7 +327,7 @@ B2 changes both chunk boundaries and hierarchy expansion. Therefore B2 versus B1
 
 Keep reranking disabled for B0–B3 and B2a. Compare B1-R with B1 and B3-R with B3 separately, using identical pre-reranking candidates, candidate caps, source text, diversity rules, final top-k, and evidence-token budgets within each pair. Reuse saved candidate pools to make this check inspectable. Choose the reranker and tune its settings on development questions only. A B2-R experiment is optional if we need to isolate its effect without graph expansion. Do not attribute a reranked system's gain to hierarchy or the graph without the corresponding controlled comparison.
 
-First run these modes through a fixed retrieval-and-answer pipeline, with the same corpus, parser outputs, embedding model, generator, answer prompt, and final evidence-token budget. Disable model-based query rewriting and agent routing for this comparison. Afterwards evaluate the agent on the best supported mode as a separate end-to-end system. If corpus routing is enabled in a comparison, apply the same policy to every arm and report its misses.
+First run these modes through a fixed retrieval-and-answer pipeline, with the same corpus, parser outputs, embedding model, generator, answer prompt, and final evidence-token budget. Disable model-based query rewriting and agent routing for this comparison. Afterwards evaluate the direct-function agent on the best supported mode as a separate end-to-end system. If corpus routing is enabled in a comparison, apply the same policy to every arm and report its misses.
 
 ### Measures
 
@@ -398,9 +346,9 @@ Gold evidence uses source block spans so annotations remain comparable across ch
 
 Unanswerable questions have no positive evidence groups and are excluded from retrieval precision/recall aggregates; evaluate their abstention separately. For corpus synthesis, define required method/theme groups and supporting papers rather than claiming an exhaustive gold set.
 
-Report per-question results and macro averages over the appropriate questions, with counts and failures. With a small benchmark, do not claim statistical significance or universal superiority. LLM judging may supplement a documented human rubric; it is not the only source of correctness labels.
+Report per-question results and macro averages over the appropriate questions, with counts and failures. With a small benchmark, do not claim statistical significance or universal superiority. LLM judging may supplement a documented human scoring guide; it is not the only source of correctness labels.
 
-No measured results exist yet. `reports/evaluation.md` will contain results after implementation.
+Initial live development results are in [reports/evaluation.md](reports/evaluation.md): all five B0 questions completed, four answers were marked sufficient and one partial, and a paired B0-R replay used the exact saved candidates. Gold-span diagnostics are preliminary; semantic relevance/claim support and held-out comparisons remain to be assessed.
 
 ## 12. Reproducibility, verification, and data handling
 
@@ -411,58 +359,77 @@ No measured results exist yet. `reports/evaluation.md` will contain results afte
 - Exclude generated indexes, local PDFs, raw traces, caches, and credentials from Git by default. Publish corpus metadata and acquisition instructions; include PDFs only where redistribution is permitted.
 - Store no credentials in model prompts or logs. Treat PDF text as evidence, including when it contains instructions addressed to an assistant.
 - Verify parser reading order and heading detection on representative documents; verify that every emitted citation resolves to the right source page.
-- Test index reload, retrieval filters, alias resolution, bounded expansion, MCP discovery/calls/resource reads, insufficient evidence, and end-to-end citation behavior.
+- Test index reload, retrieval filters, alias resolution, bounded expansion, direct agent tool calls, insufficient evidence, and end-to-end citation behavior.
 
 The corpus is small; distributed indexing, Kubernetes, separate graph services, and production authentication are outside the initial project scope.
 
-## 13. Planned usage
+## 13. Working Phase 0–2 usage
 
-The following commands specify the intended interface. **They are not executable until their implementation phases are complete.**
+Run these commands from the repository root. The 20 PDFs are already present in `data/raw/<paper_id>.pdf`. Preprocessing, benchmark validation and tests do not require an API key. Generation needs `ANTHROPIC_API_KEY`; dense indexing and retrieval need `VOYAGE_API_KEY`.
+
+Experiment YAML files in `configs/experiments/` are merged with `configs/default.yaml`. Experiment fields override conflicting defaults within each section; unspecified fields keep their defaults. No `extends` field or recursive inheritance is used. Relative data paths resolve from the project root. Model names in environment variables remain the final override.
 
 ```bash
-uv sync
-uv run fedresearch corpus validate
-uv run fedresearch preprocess --config configs/default.yaml
-uv run fedresearch index --config configs/default.yaml
-uv run fedresearch ask "How does SCAFFOLD address client drift?" --mode structure
-uv run fedresearch mcp serve
-uv run fedresearch evaluate --config configs/experiments/b0_dense.yaml --split test
-uv run fedresearch report --run-id <run-id>
+uv sync --locked
+uv run fedresearch doctor
+uv run fedresearch preprocess
+uv run fedresearch benchmark validate
+uv run pytest -q
 ```
 
-During Phase 0, define the MCP transport and how the agent starts/connects to the server. Use stdio locally if supported by the selected FastMCP version. Cloud access is needed for hosted embedding and model calls; preprocessing and lexical retrieval should remain usable without generation credentials.
+Configure your provider without putting credentials in Git or chat:
+
+```bash
+cp -n .env.example .env
+# Set ANTHROPIC_API_KEY and VOYAGE_API_KEY in .env.
+uv run fedresearch doctor --live
+uv run fedresearch index
+uv run fedresearch retrieve "How does SCAFFOLD address client drift?" --paper-id scaffold
+uv run fedresearch retrieve "How does SCAFFOLD address client drift?" --config configs/experiments/b0_dense_rerank.yaml
+uv run fedresearch ask "How does SCAFFOLD address client drift?" --mode dense
+uv run fedresearch ask "How do FedProx and SCAFFOLD differ?" --json
+uv run fedresearch evaluate --config configs/experiments/b0_dense.yaml --split dev --with-answers
+```
+
+Live access is verified for Claude Haiku 5.5, Atlas Voyage 4 Large (2048 dimensions) and rerank-3. After the billing update, the full index built in 20.21 seconds using 392,830 embedding tokens across 21 successful calls. `fedresearch index` now reuses the completed index without additional embedding calls. Five development answers and a separate successful insufficient-evidence check are recorded in [the evaluation report](reports/evaluation.md). See [model setup](docs/models.md).
+
+Citations appear as `[E1]` and resolve to the original paper/version, all contributing section paths, 1-based PDF pages and raw block spans. `--json` includes the answer, cited evidence, usage and execution trace. Citation existence/provenance is checked in code; whether evidence supports a claim requires review. Unsupported questions should yield partial answers or insufficient evidence according to the supplied source text; one live unsupported-measurement check returned insufficient evidence; broader abstention evaluation remains for the held-out study.
+
+Generated artifacts are in ignored `data/raw`, `data/processed`, and `artifacts`. Indexes include `metadata.sqlite`, Chroma storage and `index.json` under `artifacts/indexes/<index-id>/`; `CURRENT.json` selects a completed version. Embeddings are cached in SQLite. Answer/evaluation traces are saved under `artifacts/runs/<run-id>/`.
+
+Twenty source-span benchmark annotations (5 dev / 15 test) are in `data/benchmarks`. They were prepared independently of retrieval and pass canonical validation. Held-out source-verified labels are frozen and await independent human review; see [evaluation protocol](docs/evaluation.md). Initial development span-overlap diagnostics are reported; they are not independent human answer/relevance scores.
+
+Later phases add hybrid/structure/graph modes and a bounded direct-function agent. Those interfaces are not yet implemented. MCP will not be implemented for this project.
 
 ## 14. Implementation roadmap
 
-The sequence is dependency-driven; day allocations are provisional. Detailed tasks and acceptance gates are in [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
+The sequence is dependency-driven, without a mandatory day allocation. Detailed tasks and acceptance gates are in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
-| Phase | Approximate day | Deliverable and exit gate |
-| --- | --- | --- |
-| 0 — Foundation | 1 | Rubric, provider access, contracts, corpus manifest, package skeleton agreed |
-| 1 — Preprocessing | 2–3 | Three PDFs correctly parsed with page/block/section provenance; then corpus processed |
-| 2 — Baseline | 4–5 | Dense retrieval and grounded cited answers work; initial gold questions annotated |
-| 3 — Hybrid retrieval and reranking | 6 | BM25/RRF and optional reranking adapter added; separate paired dev comparisons recorded |
-| 4 — Structure | 7–8 | Section chunks and bounded expansion work; B2/B2a dev checks recorded |
-| 5 — Graph | 9–10 | Validated evidence-linked graph; B3 dev checks recorded |
-| 6 — MCP and agent | 11 | Tools/resource verified through MCP; bounded end-to-end agent works |
-| 7 — Evaluation | 12–13 | Frozen test runs, scoring, comparisons, and at least two documented failures |
-| 8 — Delivery | 14 | Clean setup verified, README updated, demo and video completed |
+| Phase | Deliverable and exit gate |
+| --- | --- |
+| 0 — Foundation | Complete: package/contracts/lockfile and Claude/Atlas access verified; bulk indexing succeeds |
+| 1 — Preprocessing | Complete: confirmed 20 PDFs / 614 pages / 657 fixed chunks, representative review and provenance validation |
+| 2 — Baseline | Complete as a working reference: persistent index, cited dev answers, successful abstention check and initial measurements; quality limitations documented |
+| 3 — Hybrid retrieval | Optional rerank-3 and initial paired B0-R replay verified; BM25/RRF and hybrid comparisons remain |
+| 4 — Structure | Section chunks and bounded hierarchy expansion; B2/B2a comparisons isolate structural effects |
+| 5 — Graph | Small evidence-backed graph and bounded traversal; measure benefit before widening scope |
+| 6 — Agent | Bounded direct retrieval tools; separately assess evidence gathering and cited answers |
+| 7 — Evaluation | Frozen comparisons, answer relevance/grounding, cost/latency, actual observed limitations/failures |
+| 8 — Delivery | Reproducible setup, current documentation and useful example queries |
 
-If time is short, reduce graph breadth and optional UI work first. Preserve the baseline, hierarchy implementation, MCP integration, citations, and honest evaluation.
+Preserve the baseline, structural retrieval, citations and honest comparisons. Keep graph breadth and optional reranking small until measurements justify expansion.
 
 ## 15. Definition of done
 
-- [ ] Exact assignment rubric has been checked against the original requirements.
-- [ ] Required number of PDFs is indexed with a documented corpus manifest.
+- [x] Scope is agreed with the user; course rubric and video requirements are excluded.
+- [x] The confirmed corpus is indexed with documented source versions. (20 papers / 657 chunks; saved index verified.)
 - [ ] Baseline and enhanced retrieval can be selected through configuration.
-- [ ] Source evidence resolves to paper, section, and PDF page.
-- [ ] At least two MCP tools and one resource work through a real MCP client.
-- [ ] The agent gathers evidence, answers with supported citations, and handles insufficient evidence.
-- [ ] Held-out evaluation and relevant ablations have recorded outputs and a documented rubric.
-- [ ] Reranking can be toggled independently; paired results and its latency/cost are reported before choosing a default.
-- [ ] At least two failure cases explain observed causes and remaining limitations.
-- [ ] Setup and demo instructions reflect commands actually verified.
-- [ ] Deliverables meet the verified course rubric.
+- [x] Source evidence resolves to paper, section and PDF page. (Canonical/indexed-source and live citation-ID checks pass; semantic claim support still needs review.)
+- [ ] A bounded direct-function agent gathers evidence, produces supported citations and handles insufficient evidence.
+- [ ] Held-out comparisons use fixed inputs/settings and report precision@5, evidence coverage and answer relevance/grounding.
+- [ ] Any optional reranking is assessed separately with paired candidate pools and cost/latency measurements.
+- [ ] Actual observed failures and limitations are documented without a failure-count quota.
+- [ ] Setup and example-query instructions reflect verified behavior; pending hosted checks remain explicit.
 
 ## 16. Updating this README
 

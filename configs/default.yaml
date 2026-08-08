@@ -1,0 +1,39 @@
+paths:
+  manifest: data/corpus_manifest.jsonl
+  raw: data/raw
+  processed: data/processed
+  indexes: artifacts/indexes
+  runs: artifacts/runs
+preprocessing:
+  parser_version: pymupdf-columns-v3
+  tokenizer: cl100k_base
+  chunk_tokens: 600
+  overlap_tokens: 100
+  exclude_references: true
+  exclude_tables: true
+embedding:
+  model: voyage-4-large
+  dimensions: 2048
+  batch_size: 32
+  timeout_seconds: 60
+  max_retries: 2
+generation:
+  model: claude-haiku-5-5
+  max_output_tokens: 2500
+  timeout_seconds: 90
+  max_retries: 2
+retrieval:
+  mode: dense
+  candidate_limit: 20
+  top_k: 5
+  evidence_tokens: 4000
+  max_query_tokens: 1024
+  routing: disabled
+reranking:
+  enabled: false
+  model: rerank-3
+  timeout_seconds: 60
+  max_retries: 2
+evaluation:
+  k: 5
+  minimum_span_overlap: 0.5

@@ -1,0 +1,32 @@
+{
+  "status": "source_verified_awaiting_human_review",
+  "dev_questions": 5,
+  "test_questions": 15,
+  "source_selection": "canonical blocks, independent of retrieval",
+  "dev_sha256": "f19d3bf6954f3dfcded8b1f2ed9aed41aea9b4fed6de4da0836a35bd302103fc",
+  "test_sha256": "5156395eabc3c54b3684fbe80f4dc59a726b94ce3a7c22ea8d59e06c060a76f2",
+  "parse_ids": {
+    "fedavg": "1bc6070da95c94a3",
+    "fedprox": "cf55bea803f64f12",
+    "scaffold": "173ab84ec4854726",
+    "fednova": "6910a9c677bb2bf3",
+    "feddyn": "6cf48657e9aa7a55",
+    "fedopt": "556bfbaaaa034ff1",
+    "mime": "cef9217ef0ef9045",
+    "local_sgd": "d7cd2f2c3c184e1f",
+    "fedavg_convergence": "1a2e64abb0b58397",
+    "noniid": "c97c4cb10b1f91f6",
+    "fedbn": "7c681b95e53b1f36",
+    "moon": "4d79ffc5e43328f5",
+    "pfedme": "751b040c172bccde",
+    "ditto": "c8c2a0e1f1820c8b",
+    "perfedavg": "d328ff33640d2afe",
+    "multitask": "70bb3d0eb8017ea3",
+    "fedmd": "d59a7ff2c0ee6f2e",
+    "qffl": "6bda45b60cd626db",
+    "agnostic": "45fd3d047f32d5ac",
+    "survey": "ebe575273e9300fd"
+  },
+  "held_out_frozen": true,
+  "human_review_complete": false
+}

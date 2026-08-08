@@ -1,0 +1,1 @@
+"""Shared, bounded retrieval service."""

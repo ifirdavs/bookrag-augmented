@@ -1,0 +1,7 @@
+# Fields here are merged with configs/default.yaml; this file wins on conflicts.
+# Uses the same dense candidate pool and final evidence budget as b0_dense.yaml.
+retrieval:
+  mode: dense
+  routing: disabled
+reranking:
+  enabled: true
