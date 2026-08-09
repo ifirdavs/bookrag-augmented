@@ -45,6 +45,8 @@ def doctor(config: Config = CONFIG, live: bool = False):
         "generation_model": settings.generation.model,
         "embedding_model": settings.embedding.model,
         "embedding_dimensions": settings.embedding.dimensions,
+        "tokenizer": settings.preprocessing.tokenizer,
+        "tokenizer_revision": settings.preprocessing.tokenizer_revision,
         "generation_provider": "anthropic",
         "generation_credential_present": bool(os.getenv("ANTHROPIC_API_KEY")),
         "embedding_provider": "voyageai",
@@ -89,7 +91,15 @@ def preprocess_command(
 ):
     """Parse existing local PDFs and report chunk counts and parsing warnings."""
     result = preprocess(load_settings(config), paper_id)
-    fields = ("paper_id", "parse_id", "blocks", "sections", "chunks", "serious_warnings")
+    fields = (
+        "paper_id",
+        "parse_id",
+        "blocks",
+        "sections",
+        "chunks",
+        "serious_warnings",
+        "structure_warnings",
+    )
     result["documents"] = [{key: doc[key] for key in fields} for doc in result["documents"]]
     emit(result)
     if result["failures"] or any(d["serious_warnings"] for d in result["documents"]):
@@ -192,8 +202,15 @@ def benchmark_freeze(config: Config = CONFIG):
 
 
 @app.command("evaluate")
-def evaluate_command(config: Config = CONFIG, split: str = "dev", with_answers: bool = False):
-    """Score retrieval on a benchmark split and optionally generate cited answers."""
+def evaluate_command(
+    config: Config = CONFIG,
+    split: str = "dev",
+    with_answers: bool = False,
+    candidate_source: Annotated[
+        Path | None, typer.Option(help="Replay a saved B0 run.json for a paired comparison.")
+    ] = None,
+):
+    """Score benchmark retrieval and optional answers; optionally replay a saved dense candidate pool."""
     if split not in {"dev", "test"}:
         raise ValueError("split must be dev or test")
     settings = load_settings(config)
@@ -203,6 +220,7 @@ def evaluate_command(config: Config = CONFIG, split: str = "dev", with_answers: 
             settings.paths.manifest.parent / "benchmarks" / f"{split}.jsonl",
             split,
             with_answers,
+            candidate_source,
         )
     emit(
         {

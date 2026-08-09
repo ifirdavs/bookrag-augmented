@@ -2,7 +2,7 @@
 
 **A structure-aware, agentic RAG assistant for federated-learning research papers.**
 
-Status: **Phases 0–2 implemented and verified live** (2026-10-15). All 20 PDFs (614 pages) are indexed as 657 fixed chunks with 2048-dimensional Atlas embeddings. The saved index reloads, five development questions produced cited answers, and an unsupported-measurement check returned insufficient evidence. Optional Atlas rerank-3 is implemented and has an initial paired retrieval check. One cross-paper answer remains partial; semantic evaluation and held-out testing remain open. Hybrid retrieval and Phases 4–8 are next. See [phase status](reports/phase_status.md) and [initial development results](reports/evaluation.md).
+Status: **Phases 0–2 implemented; 40-paper rebuild and B0/B0-R evaluation complete** (2026-10-18). The corpus has 937 pages and 1,158 Voyage-tokenized chunks. Both modes completed all 20 benchmark questions (5 dev / 15 held-out), with zero execution failures and identical candidate pools within each pair. Held-out gold-span P@5 changed from 0.108 to 0.215, group recall from 0.410 to 0.808, and complete coverage from 5/13 to 10/13; both modes abstained on both unanswerables. Exploratory assistant relevance/source review is recorded separately from these metrics and from independent human grading. See [results](reports/evaluation.md), [machine-readable summary](reports/evaluation_summary.json) and [phase status](reports/phase_status.md). Next: BM25/RRF and then section-aware retrieval.
 
 FedResearch will answer technical questions using a curated PDF corpus, retrieve supporting passages, and cite the paper, section, and PDF page. It will combine corpus-level search with document hierarchy and a small evidence-linked knowledge graph inspired by BookRAG.
 
@@ -36,7 +36,7 @@ Build a simple, grounded federated-learning research assistant and measure wheth
 
 | Area | Deliverable |
 | --- | --- |
-| Corpus | The confirmed 20-paper corpus; expand only if relevant questions reveal coverage gaps |
+| Corpus | 40 papers: preserve the existing 20 and add 20 selected papers covering surveys, privacy, systems and applications |
 | Baseline | Fixed-size chunks, dense retrieval, original-source cited answers |
 | Enhanced retrieval | BM25 plus dense search with RRF; section-aware chunks and bounded hierarchy expansion |
 | Graph | A small evidence-linked graph where entity navigation demonstrably helps |
@@ -50,7 +50,7 @@ Initial scope: English, text-based research PDFs; reliable prose and source cita
 
 Keep the same corpus, parser, embedding model, generator, test questions and evidence budget for controlled comparisons. Use the graph and agent only when their measured benefit justifies their complexity. Document failures that occur in real runs; never introduce failures to satisfy a reporting count. Negative questions evaluate successful abstention when the corpus lacks evidence.
 
-The selected corpus covers original methods, optimization/heterogeneity, personalization and fairness. It is sufficient for the current implementation and benchmark foundation; expansion will be motivated by actual coverage needs.
+The original 20 papers cover methods, optimization/heterogeneity, personalization and fairness. The selected additions broaden communication efficiency, secure aggregation, privacy attacks, systems, surveys and applications. The 40-paper corpus must be fixed before comparing retrieval modes; historical 20-paper results are a separate corpus version.
 
 ## 3. Relationship to BookRAG
 
@@ -118,6 +118,7 @@ This describes the files that exist now. Each Python module and function has a d
 | --- | --- | --- |
 | [`cli.py`](src/fedresearch/cli.py) | Defines commands and prints their results | Provides one entry point while keeping the actual work in services |
 | [`settings.py`](src/fedresearch/settings.py) | Loads YAML, experiment overrides and environment settings | Keeps model choices and budgets consistent across runs |
+| [`tokenization.py`](src/fedresearch/tokenization.py) | Loads and caches the pinned official Voyage tokenizer locally | Gives chunking, evidence counts and query limits one consistent token definition |
 | [`schemas.py`](src/fedresearch/schemas.py) | Defines papers, blocks, chunks, evidence and answers | Preserves typed source identities and citation contracts |
 | [`util.py`](src/fedresearch/util.py) | Hashes identities/files and reads/writes JSON | Shares the few persistence helpers used by several stages |
 | [`corpus/manifest.py`](src/fedresearch/corpus/manifest.py) | Reads metadata and checks the existing local PDFs | Pins the exact papers/versions being processed |
@@ -137,7 +138,7 @@ This describes the files that exist now. Each Python module and function has a d
 | [`llm/answering.py`](src/fedresearch/llm/answering.py) | Retrieves evidence, generates structured claims and checks citations | Produces the fixed baseline answer before agent planning |
 | [`evaluation/dataset.py`](src/fedresearch/evaluation/dataset.py) | Loads question labels, verifies source quotes and enforces the held-out freeze | Keeps benchmark labels independent of chunking/retrieval |
 | [`evaluation/retrieval_metrics.py`](src/fedresearch/evaluation/retrieval_metrics.py) | Computes span-based precision/recall/coverage diagnostics | Measures retrieval against the same original evidence across experiments |
-| [`evaluation/runner.py`](src/fedresearch/evaluation/runner.py) | Runs questions and saves evidence, answers, scores, timings and failures | Makes comparisons inspectable and repeatable |
+| [`evaluation/runner.py`](src/fedresearch/evaluation/runner.py) | Runs questions, optionally replays saved B0 candidates, and saves evidence/answers, scores, timings and failures | Makes comparisons inspectable and isolates reranking effects |
 | `__init__.py` files in each package | Mark Python packages; the root also defines the version | Support package imports; they contain no pipeline logic |
 
 The answer prompt lives in `src/fedresearch/llm/prompts/answer.md`. Settings live in `configs/default.yaml`. `configs/experiments/b0_dense.yaml` keeps reranking off; `b0_dense_rerank.yaml` enables it with the same dense candidate pool and final budget. BM25, structural expansion, graph and agent modules will be added in their phases.
@@ -151,6 +152,7 @@ Tests are separate from application code:
 | `tests/test_generation_api.py` | Claude structured responses, truncation/refusal handling and sanitized errors |
 | `tests/test_reranking_api.py` | Atlas rerank-3 request/response handling, index validation and empty-scope behavior |
 | `tests/test_settings.py` | Default/experiment YAML merging and path resolution |
+| `tests/test_tokenization.py` | Voyage chunk limits, Unicode coverage, exact source spans and no silent tokenizer truncation/padding |
 
 For a quick review, start with `cli.py` → `llm/answering.py` → `retrieval/service.py` → `retrieval/evidence.py`. Read `retrieval/reranking.py` for the optional ranking stage. `indexing/pipeline.py` is the build path; the PDF layout details are isolated under `preprocessing/`.
 
@@ -170,7 +172,7 @@ These Markdown files are development notes, not runtime dependencies. The README
 
 ## 6. Proposed technology choices
 
-Phase 0–2 local dependencies are locked in `uv.lock` and tested with Python 3.13.1. Claude generation access is verified; corpus retrieval measurements are pending; later-phase dependencies remain working design choices.
+Phase 0–2 local dependencies are locked in `uv.lock` and tested with Python 3.13.1. Live model access and historical baseline measurements are recorded; the 40-paper Voyage-tokenizer index and all four B0/B0-R development/test runs are verified. Independent human grading is not claimed. Later-phase dependencies remain working design choices.
 
 | Component | Initial choice | Rationale |
 | --- | --- | --- |
@@ -216,7 +218,7 @@ The following storage choices are planned for the initial project. **Production 
 
 **NetworkX JSON to Neo4j.** The serialized JSON data can be imported to Neo4j, but NetworkX node-link JSON is not an automatic native Neo4j graph-import format. A mapping step must create graph nodes from the JSON node records, then create typed relationships by resolving each edge's source and target IDs. A Python importer can read the JSON and write batches through the Neo4j driver; alternatively, where APOC is available, `apoc.load.json` can parse the JSON and Cypher can construct the graph. `apoc.import.json` expects APOC's graph-export format, so it requires conversion rather than direct use on arbitrary NetworkX JSON. Map node types to labels and relation types to approved relationship types, preserve application IDs, direction, relation identity, and provenance, and flatten nested attributes or model them as separate records to fit Neo4j property types. Verify node/edge counts and source links after migration. This is a documented migration route; no importer is implemented yet.
 
-**Neo4j code tradeoff.** Docker Compose starts the server, but the application still needs a Neo4j driver/credentials, node and relation imports/upserts, constraints, bounded Cypher traversal queries, and mapping of returned evidence IDs back to SQLite sources. These replace the NetworkX JSON save/load and in-process traversal implementation. For the current 20-paper scope, NetworkX remains the simpler planned graph store. If Neo4j is selected in Phase 5, implement one store rather than maintaining two. See [Neo4j driver queries](https://neo4j.com/docs/python-manual/current/query-simple/).
+**Neo4j code tradeoff.** Docker Compose starts the server, but the application still needs a Neo4j driver/credentials, node and relation imports/upserts, constraints, bounded Cypher traversal queries, and mapping of returned evidence IDs back to SQLite sources. These replace the NetworkX JSON save/load and in-process traversal implementation. For the agreed 40-paper scope, NetworkX remains the simpler planned graph store. If Neo4j is selected in Phase 5, implement one store rather than maintaining two. See [Neo4j driver queries](https://neo4j.com/docs/python-manual/current/query-simple/).
 
 **Graph–Tree Links.** These are explicit associations between semantic graph entities and the document nodes where their evidence occurs. Persist a many-to-many mapping such as `entity_node_links(entity_id, tree_node_id, paper_id, document_version)` in SQLite, indexed for lookup in both directions. Relation evidence must additionally retain supporting block IDs and spans; a general entity mention does not by itself prove a relation. Keep the entity-ID registry and source-node records available for referential validation when loading a graph snapshot. Export these mappings with the corresponding graph/tree version so references cannot silently point to a different parse. They do not require a separate database service.
 
@@ -257,7 +259,9 @@ Missing or uncertain headings get an explicit fallback section. Unsupported tabl
 7. **Evidence packing:** Select from the resulting ranking, preserve paper diversity for comparisons, and enforce a shared token budget. Record any diversity constraint separately from relevance scores.
 8. **Answering:** Generate claims only from supplied evidence and cite their sources. If required evidence is missing, provide a qualified partial answer or an insufficient-evidence response.
 
-Initial retrieval settings to tune on development questions only: chunk size around 600 tokens, 100-token overlap for fixed chunks, 20 candidates from each retriever, RRF constant 60, final top 5 evidence items for retrieval metrics, and approximately 4,000 evidence tokens for generation. These are starting settings, not proven optimal values. Section-aware chunks target a similar size and split oversized sections.
+Current B0 settings: 600-token chunks with 100-token overlap, up to 20 Chroma dense candidates, source-overlap deduplication, and up to 5 final evidence items within 4,000 evidence-text tokens. Voyage 4 Large embeds documents and queries at 2048 dimensions. B0-R passes every deduplicated candidate's **text**, together with the query, to `rerank-3`, receives all of them reordered, and applies the same final item/token limits. Chunk IDs resolve the text locally; dense scores are kept for the trace and are not inputs to the reranking API. B0 selects evidence using the dense ranking. Future hybrid retrieval will add BM25/RRF; its starting RRF constant is 60. Tune settings on development questions only.
+
+Chunk sizes, evidence-text counts and the 1,024-token query limit use the official `voyageai/voyage-4-large` tokenizer, pinned to revision `bb931c2635a93efe400c24741363d8ff61d7bb32`. It runs locally through Hugging Face `tokenizers`; the first use downloads approximately 7 MB into the standard Hugging Face cache (`HF_HOME` can relocate it). No embedding API request or API key is needed for tokenization. Unicode character offsets preserve original-source spans; boundary adjustments can slightly reduce overlap. The 4,000-token budget counts passage text, excluding citation labels and prompt formatting. It is not a Claude context or billing-token count; actual embedding, reranking and generation usage comes from the respective APIs. [Voyage tokenization](https://www.mongodb.com/docs/voyageai/tutorials/tokenization/)
 
 The reranking adapter is implemented and can later be reused after structure and graph expansion. Current settings are `reranking.enabled: false`, `reranking.model: rerank-3` and SDK timeout/retry limits. The existing `retrieval.candidate_limit` also caps reranker inputs; there is no separate candidate-budget setting. B0 and B0-R use the same 20 candidates before deduplication. Phase 3 can test a shared 40-candidate cap for hybrid/reranked pairs. Keep final top-k and evidence-token budgets unchanged. Silent truncation is disabled; the API rejects over-limit inputs instead of dropping source text. Provider failures must be recorded as failed reranking runs; any interactive fallback to the existing ranking must be explicit in the trace.
 
@@ -348,7 +352,7 @@ Unanswerable questions have no positive evidence groups and are excluded from re
 
 Report per-question results and macro averages over the appropriate questions, with counts and failures. With a small benchmark, do not claim statistical significance or universal superiority. LLM judging may supplement a documented human scoring guide; it is not the only source of correctness labels.
 
-Initial live development results are in [reports/evaluation.md](reports/evaluation.md): all five B0 questions completed, four answers were marked sufficient and one partial, and a paired B0-R replay used the exact saved candidates. Gold-span diagnostics are preliminary; semantic relevance/claim support and held-out comparisons remain to be assessed.
+The current 40-paper B0/B0-R comparison is in [reports/evaluation.md](reports/evaluation.md); structured run/usage/score records and the exploratory assistant relevance review are in [reports/evaluation_summary.json](reports/evaluation_summary.json). All 40 answer executions completed without errors. Source-overlap metrics improved with reranking on this benchmark, but gains were mixed by question and the review found actual answer/coverage issues. Independent human scoring and exhaustive claim-support ratios are not reported.
 
 ## 12. Reproducibility, verification, and data handling
 
@@ -365,7 +369,25 @@ The corpus is small; distributed indexing, Kubernetes, separate graph services, 
 
 ## 13. Working Phase 0–2 usage
 
-Run these commands from the repository root. The 20 PDFs are already present in `data/raw/<paper_id>.pdf`. Preprocessing, benchmark validation and tests do not require an API key. Generation needs `ANTHROPIC_API_KEY`; dense indexing and retrieval need `VOYAGE_API_KEY`.
+Run these commands from the repository root. All 40 PDFs are present in `data/raw/<paper_id>.pdf` and pass manifest checksum validation. Preprocessing, benchmark validation and tests do not require an API key. The tokenizer needs a one-time public download unless already cached. Generation needs `ANTHROPIC_API_KEY`; dense indexing and retrieval need `VOYAGE_API_KEY`.
+
+For the current interactive expansion, a temporary script and verified source list are prepared in ignored `work/`:
+
+```bash
+uv run python work/download_corpus_additions.py
+```
+
+This downloads only the selected additions (18 pinned arXiv versions and two published PDFs), verifies PDF/title identity, calculates SHA-256 and registers each successful download using the existing seven manifest fields. It checks the original corpus first and reuses registered files on a retry. It prints per-paper progress and a final integrity summary; success requires 40 papers and empty failure lists. The original manifest is backed up in `work/corpus_before_expansion.jsonl`. These are one-off walkthrough files, outside the application CLI; PDFs remain ignored. The user runs each stage and shares its output before continuing. Corpus parsing, indexing and model calls follow separately.
+
+The download and corrected full preprocessing steps completed successfully: 40 papers, 937 pages, 47,592 blocks, 955 sections and 1,158 chunks, capped at 600 Voyage tokens. No failures, serious warnings or structural warnings remain. The first v3 run had six heading warnings; v4 handles the observed Roman-numbered and merged-heading cases, preserving same-line section numbers/titles. These are heuristic parsing checks, not a complete visual audit of every page. No hosted-model calls were needed.
+
+**Tokenizer migration:** changing the tokenizer invalidates old parse/chunk identities. The one-off `work/migrate_benchmark_sources.py` verified and migrated all 26 benchmark passages against unchanged PDF hashes, versions, pages, raw block text, coordinates, exact quotes and offsets. Only parse/block IDs changed; original labels remain in `work/benchmarks_before_voyage/`. Both splits passed canonical validation (5 dev / 15 test), and the new test freeze is valid. Independent human review is still pending. The following local steps completed successfully; the script checks both splits before writing and stops on a missing/ambiguous match or unexpected label edit. Old indexes/results remain historical artifacts; compatibility checks prevent querying the old index with the new settings.
+
+```bash
+HF_HOME=work/hf-cache uv run python work/migrate_benchmark_sources.py --apply
+HF_HOME=work/hf-cache uv run fedresearch benchmark validate
+HF_HOME=work/hf-cache uv run fedresearch benchmark freeze
+```
 
 Experiment YAML files in `configs/experiments/` are merged with `configs/default.yaml`. Experiment fields override conflicting defaults within each section; unspecified fields keep their defaults. No `extends` field or recursive inheritance is used. Relative data paths resolve from the project root. Model names in environment variables remain the final override.
 
@@ -373,6 +395,7 @@ Experiment YAML files in `configs/experiments/` are merged with `configs/default
 uv sync --locked
 uv run fedresearch doctor
 uv run fedresearch preprocess
+# During tokenizer migration, verify/rebind benchmark source IDs before this command.
 uv run fedresearch benchmark validate
 uv run pytest -q
 ```
@@ -389,15 +412,21 @@ uv run fedresearch retrieve "How does SCAFFOLD address client drift?" --config c
 uv run fedresearch ask "How does SCAFFOLD address client drift?" --mode dense
 uv run fedresearch ask "How do FedProx and SCAFFOLD differ?" --json
 uv run fedresearch evaluate --config configs/experiments/b0_dense.yaml --split dev --with-answers
+# Paired B0-R: reuse the exact candidates saved by the completed B0 run.
+HF_HOME=work/hf-cache uv run fedresearch evaluate \
+  --config configs/experiments/b0_dense_rerank.yaml --split dev --with-answers \
+  --candidate-source artifacts/runs/640d302142b1483cb256139526f5a3bc/run.json
 ```
 
-Live access is verified for Claude Haiku 5.5, Atlas Voyage 4 Large (2048 dimensions) and rerank-3. After the billing update, the full index built in 20.21 seconds using 392,830 embedding tokens across 21 successful calls. `fedresearch index` now reuses the completed index without additional embedding calls. Five development answers and a separate successful insufficient-evidence check are recorded in [the evaluation report](reports/evaluation.md). See [model setup](docs/models.md).
+Live access was verified for Claude Haiku 5.5, Atlas Voyage 4 Large (2048 dimensions) and rerank-3. The historical 20-paper index built in 20.21 seconds using 392,830 embedding tokens across 21 successful calls and passed saved-index reuse. The new 40-paper Voyage-tokenized index `6f8ba8be92dcc84b51a5514f` is now active: 1,158 chunks, 683,346 API-reported embedding tokens over 37 calls and 34.77 seconds. Vector/source IDs, dimensions, chunk fingerprints and all benchmark source spans were verified locally; all four new development/test runs completed (40 answer executions) with exact shared candidates within each pair, zero execution failures and correct abstention on both designated unanswerables in each mode. The held-out reranked run used 181,734 reranking tokens over 15 calls and zero additional query embeddings. Five historical development answers and a separate successful insufficient-evidence check are recorded in [the evaluation report](reports/evaluation.md). See [model setup](docs/models.md).
 
-Citations appear as `[E1]` and resolve to the original paper/version, all contributing section paths, 1-based PDF pages and raw block spans. `--json` includes the answer, cited evidence, usage and execution trace. Citation existence/provenance is checked in code; whether evidence supports a claim requires review. Unsupported questions should yield partial answers or insufficient evidence according to the supplied source text; one live unsupported-measurement check returned insufficient evidence; broader abstention evaluation remains for the held-out study.
+Citations appear as `[E1]` and resolve to the original paper/version, all contributing section paths, 1-based PDF pages and raw block spans. `--json` includes the answer, cited evidence, usage and execution trace. Citation existence/provenance is checked in code; whether evidence supports a claim requires review. Unsupported questions should yield partial answers or insufficient evidence according to the supplied source text; one live unsupported-measurement check returned insufficient evidence; both designated held-out unanswerables also returned insufficient with zero claims in both retrieval modes.
+
+`evaluate --candidate-source <B0-run.json>` verifies the source index, label hash, split, question IDs, prompt and settings (allowing only the reranking enable switch). It reuses exact candidate IDs/order/cosine scores and skips query embedding/search while using the normal deduplication, ranking, packing and answer workflow. The new run records source-run identity/hash and makes its reduced timing scope explicit. Claude is called once per question with nonempty evidence; an empty evidence list produces an insufficient answer locally. Every final selected chunk is sent in the prompt: `records[].answer.evidence` stores that input set, while `records[].answer.citations` contains the subset actually cited. Dense search starts with up to 20 candidates; reranking/budgeting determines the final up-to-five set. The query embedding is transient and has no key in `run.json`; the run saves candidate IDs/scores and `records[].answer.usage.embedding` token/request counts instead.
 
 Generated artifacts are in ignored `data/raw`, `data/processed`, and `artifacts`. Indexes include `metadata.sqlite`, Chroma storage and `index.json` under `artifacts/indexes/<index-id>/`; `CURRENT.json` selects a completed version. Embeddings are cached in SQLite. Answer/evaluation traces are saved under `artifacts/runs/<run-id>/`.
 
-Twenty source-span benchmark annotations (5 dev / 15 test) are in `data/benchmarks`. They were prepared independently of retrieval and pass canonical validation. Held-out source-verified labels are frozen and await independent human review; see [evaluation protocol](docs/evaluation.md). Initial development span-overlap diagnostics are reported; they are not independent human answer/relevance scores.
+Twenty source-span benchmark annotations (5 dev / 15 test) are in `data/benchmarks`. They were prepared independently of retrieval and passed historical canonical validation. The new parse migration is complete: all 26 passages passed canonical validation and the new held-out freeze is valid. Independent human review is still pending; see [evaluation protocol](docs/evaluation.md), including the exact development score calculations. The label freeze hashes the entire `data/benchmarks/test.jsonl` reference-annotation file into `data/benchmarks/frozen.json`; test evaluation rejects a hash mismatch. It does not make files read-only or freeze model weights/settings. Development and held-out span-overlap diagnostics plus an exploratory assistant relevance review are reported; none is an independent human accuracy score.
 
 Later phases add hybrid/structure/graph modes and a bounded direct-function agent. Those interfaces are not yet implemented. MCP will not be implemented for this project.
 
@@ -408,9 +437,9 @@ The sequence is dependency-driven, without a mandatory day allocation. Detailed 
 | Phase | Deliverable and exit gate |
 | --- | --- |
 | 0 — Foundation | Complete: package/contracts/lockfile and Claude/Atlas access verified; bulk indexing succeeds |
-| 1 — Preprocessing | Complete: confirmed 20 PDFs / 614 pages / 657 fixed chunks, representative review and provenance validation |
-| 2 — Baseline | Complete as a working reference: persistent index, cited dev answers, successful abstention check and initial measurements; quality limitations documented |
-| 3 — Hybrid retrieval | Optional rerank-3 and initial paired B0-R replay verified; BM25/RRF and hybrid comparisons remain |
+| 1 — Preprocessing | Corrected 40-paper parse verified: 937 pages / 955 sections / 1,158 chunks, no diagnostic warnings; all 26 benchmark passages migrated/validated and test labels refrozen |
+| 2 — Baseline | Complete for the 40-paper reference: persistent index, cited B0/B0-R answers on 5 dev / 15 held-out questions, paired candidates, abstention checks and reported limitations; independent human grading remains optional follow-up |
+| 3 — Hybrid retrieval | Optional rerank-3 and paired dev/test comparisons verified; BM25/RRF and hybrid comparisons remain |
 | 4 — Structure | Section chunks and bounded hierarchy expansion; B2/B2a comparisons isolate structural effects |
 | 5 — Graph | Small evidence-backed graph and bounded traversal; measure benefit before widening scope |
 | 6 — Agent | Bounded direct retrieval tools; separately assess evidence gathering and cited answers |
@@ -422,7 +451,7 @@ Preserve the baseline, structural retrieval, citations and honest comparisons. K
 ## 15. Definition of done
 
 - [x] Scope is agreed with the user; course rubric and video requirements are excluded.
-- [x] The confirmed corpus is indexed with documented source versions. (20 papers / 657 chunks; saved index verified.)
+- [ ] The expanded 40-paper corpus is parsed/indexed with the pinned Voyage tokenizer and documented source versions. (Historical 20-paper / 657-chunk baseline verified.)
 - [ ] Baseline and enhanced retrieval can be selected through configuration.
 - [x] Source evidence resolves to paper, section and PDF page. (Canonical/indexed-source and live citation-ID checks pass; semantic claim support still needs review.)
 - [ ] A bounded direct-function agent gathers evidence, produces supported citations and handles insufficient evidence.

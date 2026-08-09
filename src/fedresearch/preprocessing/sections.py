@@ -4,9 +4,11 @@ import re
 
 from fedresearch.schemas import Block, Section
 
-NUMBERED = re.compile(r"^(\d+(?:\.\d+)*|[A-Z](?:\.\d+)*)\.?\s+([A-Z][A-Za-z].{1,100})$")
+NUMBERED = re.compile(
+    r"^(\d+(?:\.\d+)*|[IVX]+|[A-Z](?:\.\d+)*)\.?\s+([A-Z](?:[A-Za-z]|-[A-Za-z]).{1,100})$"
+)
 NAMED = re.compile(
-    r"^(abstract|references|bibliography|acknowledg(?:e)?ments?|appendix(?:\s+[A-Z])?|conclusions?|introduction|related work|discussion|experiments|experimental results)$",
+    r"^(abstract|references|bibliography|acknowledg(?:e)?ments?|appendix(?:\s+[A-Z])?|conclusions?|introduction|related work|discussion|methods|results|experiments|experimental results)$",
     re.I,
 )
 
@@ -21,6 +23,13 @@ def heading(
     if named:
         return text, 0.9
     numbered = NUMBERED.fullmatch(text.strip())
+    if (
+        numbered
+        and re.fullmatch(r"[IVX]+", numbered.group(1))
+        and numbered.group(2).isupper()
+        and size >= body_size * 0.75
+    ):
+        return text, 0.8
     if numbered and (numbered.group(1)[0].isdigit() or page > 1):
         if bold or size > body_size * 1.06:
             return text, 0.85

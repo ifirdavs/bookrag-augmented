@@ -4,6 +4,7 @@ import json
 import re
 import subprocess
 import sys
+from unittest.mock import Mock
 
 import pymupdf
 import pytest
@@ -19,6 +20,7 @@ from fedresearch.evaluation.dataset import (
     verify_question,
 )
 from fedresearch.evaluation.retrieval_metrics import score_retrieval
+from fedresearch.evaluation.runner import run_baseline
 from fedresearch.indexing.embeddings import EmbeddingCache
 from fedresearch.indexing.pipeline import build_index, preprocess
 from fedresearch.llm.answering import answer_question, validate_citations
@@ -28,12 +30,14 @@ from fedresearch.preprocessing.pdf_parser import (
     caption_table_regions,
     extract_items,
     ordered_blocks,
+    parse_pdf,
 )
 from fedresearch.preprocessing.sections import heading
 from fedresearch.retrieval.service import RetrievalService
 from fedresearch.schemas import Block, Claim, GeneratedAnswer, Paper
 from fedresearch.settings import Preprocessing, Settings
-from fedresearch.util import file_sha256, write_jsonl
+from fedresearch.tokenization import load_tokenizer
+from fedresearch.util import atomic_json, file_sha256, write_jsonl
 
 
 class TestEmbedder:
@@ -151,6 +155,55 @@ def test_author_initial_is_not_a_heading():
     assert heading("1 Server executes:", 10, True, 10, 4) is None
 
 
+def test_roman_small_caps_headings_are_recognized():
+    """Verify IEEE Roman-numbered headings, including page-one Introduction, without treating initials as headings."""
+    assert heading("I. INTRODUCTION", 8, False, 10, 1)
+    assert heading("II. PRELIMINARIES", 8, False, 10, 2)
+    assert heading("IV. EXPERIMENTS", 8, False, 10, 5)
+    assert heading("V. K-CLIENT RANDOM SCHEDULING POLICY", 8, False, 10, 8)
+    assert heading("I. Goodfellow", 11, False, 10, 1) is None
+    assert heading("U I).", 10, False, 10, 16) is None
+    assert heading("P T Θ +", 8, False, 10, 7) is None
+
+
+def test_named_headings_merged_with_prose_preserve_reference_boundary(tmp_path):
+    """Verify merged journal headings become sections and bibliography text stays out of chunks."""
+    path = tmp_path / "journal.pdf"
+    with pymupdf.open() as document:
+        page = document.new_page()
+        for y, text, size, font in [
+            (60, "Methods", 11, "hebo"),
+            (72, "Clients train locally and share updates with a server.", 9, "helv"),
+            (160, "References", 11, "hebo"),
+            (172, "1. Bibliography-only material should not be embedded.", 9, "helv"),
+        ]:
+            page.insert_text((60, y), text, fontsize=size, fontname=font)
+        document.save(path)
+    paper = Paper(
+        paper_id="journal",
+        title="Example journal",
+        year=2020,
+        source_url="https://example.org/journal",
+        document_version="fixture:journal:1",
+        sha256=file_sha256(path),
+    )
+    document = parse_pdf(path, paper, Preprocessing())
+    assert any(section.title == "Methods" for section in document.sections)
+    assert any(section.kind == "references" for section in document.sections)
+    assert "Clients train locally" in " ".join(chunk.text for chunk in document.chunks)
+    assert "Bibliography-only" not in " ".join(chunk.text for chunk in document.chunks)
+
+
+def test_heading_number_and_title_on_same_line_stay_together():
+    """Verify separate PDF text runs for a section number and title remain one heading block."""
+    with pymupdf.open() as document:
+        page = document.new_page()
+        page.insert_text((60, 100), "3", fontsize=12, fontname="hebo")
+        page.insert_text((85, 100), "Experimental Results", fontsize=12, fontname="hebo")
+        items = extract_items(page)
+    assert any(clean_text(item["raw_text"])[0] == "3 Experimental Results" for item in items)
+
+
 def test_invalid_settings_and_vectors():
     """Verify invalid settings and vectors."""
     with pytest.raises(ValueError, match="overlap"):
@@ -166,6 +219,24 @@ def test_duplicate_corpus_id_rejected(corpus):
     write_jsonl(corpus.paths.manifest, [rows[0], rows[0]])
     with pytest.raises(ValueError, match="Duplicate"):
         load_manifest(corpus.paths.manifest)
+
+
+def test_query_budget_uses_voyage_tokens(corpus):
+    """Verify an over-budget Unicode query is rejected before any query embedding request."""
+    build_index(corpus, TestEmbedder())
+    config = corpus.preprocessing
+    tokenizer = load_tokenizer(config.tokenizer, config.tokenizer_revision)
+    query = "∇𝛼 中文 personalized learning " * 20
+    count = len(tokenizer.encode(query, add_special_tokens=False))
+    corpus.retrieval.max_query_tokens = count - 1
+    provider = TestEmbedder()
+    with RetrievalService(corpus, provider) as service:
+        with pytest.raises(ValueError, match="token budget"):
+            service.retrieve(query)
+        assert provider.calls == 0
+        corpus.retrieval.max_query_tokens = count
+        assert service.retrieve(query)
+        assert provider.calls == 1
 
 
 def test_index_reload_filters_budgets_and_empty_scope(corpus):
@@ -274,6 +345,106 @@ def test_cited_answers_and_absent_evidence(corpus):
         assert answer.citations["E1"].paper_id == "alpha"
         absent = answer_question(service, "no evidence", paper_ids=[])
         assert absent.sufficiency == "insufficient" and not absent.citations
+
+
+@pytest.fixture
+def baseline_run(corpus, monkeypatch):
+    """Helper to replay tests: save a synthetic B0 answer run without hosted model calls."""
+    build_index(corpus, TestEmbedder())
+    question = BenchmarkQuestion(
+        question_id="dev1",
+        split="dev",
+        kind="unanswerable",
+        question="What quantum processor is used?",
+        answerable=False,
+        expected_points=[],
+        evidence_groups=[],
+        annotation_status="source_verified",
+    )
+    path = corpus.paths.manifest.parent / "benchmarks/dev.jsonl"
+    write_jsonl(path, [question.model_dump(mode="json")])
+
+    class AbstainingGenerator:
+        usage = {"input_tokens": 10, "output_tokens": 10}
+
+        def generate(self, instructions, input_text):
+            """Helper to replay tests: return a controlled abstention with nonempty retrieved evidence."""
+            assert json.loads(input_text)["evidence"]
+            return GeneratedAnswer(
+                sufficiency="insufficient", claims=[], limitations="No processor is described."
+            )
+
+    def controlled_answer(service, query, **filters):
+        """Helper to replay tests: inject a local generator into the real answer workflow."""
+        return answer_question(service, query, AbstainingGenerator(), **filters)
+
+    monkeypatch.setattr("fedresearch.evaluation.runner.answer_question", controlled_answer)
+    with RetrievalService(corpus, TestEmbedder()) as service:
+        result = run_baseline(service, path, "dev", with_answers=True)
+    assert result["failures"] == 0
+    source = corpus.paths.runs / result["run_id"] / "run.json"
+    return path, source, result
+
+
+def test_evaluation_replays_exact_candidates_without_embedding_or_search(corpus, baseline_run):
+    """Verify paired answers reuse exact dense candidates and omit query embedding/search calls."""
+    path, source, baseline = baseline_run
+    corpus.reranking.enabled = True
+    reranker = Mock()
+
+    def reverse(query, texts):
+        """Helper to replay tests: reverse candidates with controlled reranker scores."""
+        return [(i, float(i)) for i in reversed(range(len(texts)))], {"enabled": True}
+
+    reranker.rerank.side_effect = reverse
+    with RetrievalService(corpus, TestEmbedder(), reranker) as service:
+        service.provider.embed = Mock(side_effect=AssertionError("Query embedding must be skipped"))
+        service.vectors.query = Mock(side_effect=AssertionError("Dense search must be skipped"))
+        result = run_baseline(service, path, "dev", with_answers=True, candidate_source=source)
+        service.provider.embed.assert_not_called()
+        service.vectors.query.assert_not_called()
+    assert result["failures"] == 0
+    assert result["candidate_source"] == {
+        "run_id": baseline["run_id"],
+        "sha256": file_sha256(source),
+    }
+    answer = result["records"][0]["answer"]
+    trace = answer["trace"]["retrieval"]
+    original = baseline["records"][0]["answer"]["trace"]["retrieval"]
+    assert trace["candidates"] == original["candidates"]
+    assert trace["candidate_source"] == "saved_pool" and trace["reranking"]["enabled"]
+    assert answer["usage"]["embedding"]["requests"] == 0
+    assert answer["usage"]["generation"]["output_tokens"] == 10
+    reranker.rerank.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "mismatch", ["index", "labels", "settings", "prompt", "questions", "missing_answer"]
+)
+def test_evaluation_rejects_incompatible_candidate_sources(corpus, baseline_run, mismatch):
+    """Reject stale or incomparable replay inputs before any reranking/generation calls."""
+    path, source, baseline = baseline_run
+    if mismatch == "index":
+        baseline["index_id"] = "different"
+    elif mismatch == "labels":
+        baseline["dataset_sha256"] = "different"
+    elif mismatch == "settings":
+        baseline["settings"]["retrieval"]["candidate_limit"] += 1
+    elif mismatch == "prompt":
+        baseline["records"][0]["answer"]["trace"]["prompt_sha256"] = "different"
+    elif mismatch == "missing_answer":
+        answer = baseline["records"][0].pop("answer")
+        baseline["records"][0]["trace"] = answer["trace"]["retrieval"]
+    else:
+        baseline["records"][0]["question_id"] = "different"
+    atomic_json(source, baseline)
+    corpus.reranking.enabled = True
+    reranker = Mock()
+    with RetrievalService(corpus, TestEmbedder(), reranker) as service:
+        with pytest.raises(ValueError, match="Candidate source"):
+            run_baseline(service, path, "dev", with_answers=True, candidate_source=source)
+        assert service.provider.calls == 0
+        reranker.rerank.assert_not_called()
 
 
 @pytest.mark.parametrize(

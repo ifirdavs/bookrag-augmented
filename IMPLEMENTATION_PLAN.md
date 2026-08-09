@@ -1,6 +1,6 @@
 # FedResearch implementation plan
 
-Status: **Phases 0–2 implemented and verified live** (2026-10-15). The full 20-paper / 657-chunk index is active with Atlas Voyage 4 Large at 2048 dimensions. Claude generated five development answers with valid citation IDs (four sufficient, one partial), and a separate unsupported-measurement check correctly abstained. Optional rerank-3 has an initial paired candidate-replay measurement. Atlas bulk access now works after the user's billing update. Semantic adjudication and held-out evaluation remain for the evaluation phase. MCP, course/video requirements and failure quotas remain excluded. See [phase status](reports/phase_status.md) and [development results](reports/evaluation.md).
+Status: **Phases 0–2 implemented; 40-paper rebuild and B0/B0-R evaluation complete** (2026-10-18). All 40 PDFs / 937 pages pass checksums; parser v4 produced 955 sections and 1,158 chunks with no serious/structural warnings. All 26 original benchmark passages were verified/migrated with only parse/block IDs changed. The 40 answer executions (20 questions per mode) completed without errors under fixed corpus/models/prompt/budgets and paired candidates. Held-out P@5 changed 0.108→0.215, group recall 0.410→0.808 and complete coverage 5/13→10/13; both modes abstained on both negatives. Assistant relevance/source review and actual limitations are reported, without independent human accuracy claims. Next: Phase 3 BM25/RRF, then Phase 4 section-aware retrieval. See [phase status](reports/phase_status.md) and [results](reports/evaluation.md).
 
 Work through the phases sequentially. Each phase produces a reviewable result, updates the README, and passes its acceptance gate before the next phase begins. There is no mandatory deadline or day allocation; keep the implementation focused on grounded answers and measured retrieval improvements.
 
@@ -15,7 +15,7 @@ Tasks:
 3. Create `pyproject.toml`, the package skeleton, `.gitignore`, `.env.example`, validated settings, and a lockfile. Pin compatible dependency versions after a small connectivity/compatibility check.
 4. Define the current `Paper`, `Block`, `Section`, `Chunk`, `Evidence` and `Answer` contracts. Specify versioning, source spans and PDF page numbering. Add graph contracts in Phase 5 when they are used.
 5. Configure preprocessing, embeddings, retrieval, generation and evaluation. Experiment files merge their fields with `default.yaml`, overriding conflicts without an inheritance mechanism. The optional rerank-3 adapter/settings are implemented and access-verified; add agent settings when that phase is implemented.
-6. Use the confirmed 20-paper corpus and FedAvg/FedProx/SCAFFOLD as representatives. Expand with relevant original methods only when desired questions expose corpus coverage gaps; distinguish surveys from original results.
+6. Preserve the confirmed 20 papers and add the 20 selected additions for the agreed 40-paper target. Use FedAvg/FedProx/SCAFFOLD as initial representatives and inspect the added layouts. Distinguish surveys from original results. Use the pinned `voyageai/voyage-4-large` tokenizer; revalidate source references after migration and keep the corpus/tokenizer fixed within each controlled comparison.
 7. Record decisions and working assumptions in `docs/decisions.md` and `docs/corpus.md`.
 
 **Outputs:** Package foundation, configuration draft, schema definitions, initial manifest, agreed scope checklist.
@@ -30,7 +30,7 @@ Tasks:
 
 Tasks:
 
-1. Start with the existing 20 PDFs in `data/raw/<paper_id>.pdf`. Keep only paper ID, title, year, source URL, document version, SHA-256 and method names in the manifest. Check file identities and duplicate versions; no acquisition commands are needed.
+1. Preserve the existing 20 PDFs in `data/raw/<paper_id>.pdf` and download the 20 selected additions interactively. Keep only paper ID, title, year, source URL, document version, SHA-256 and method names in the manifest. Check file identities and duplicate versions; keep one-off acquisition outside the application CLI.
 2. Parse the 3 development PDFs into text blocks with page and bounding-box metadata. Inspect title pages, two-column body pages, headings, references, and at least one experimental-results page.
 3. Check for mixed columns, missing text, repeated headers/footers, hyphenation, and unsupported tables. Preserve original text/provenance through cleaning.
 4. Implement heading detection and parent/child section relationships using numbering and font/layout cues. Use explicit fallback sections when detection is uncertain.
@@ -188,7 +188,7 @@ Tasks:
 | Decision | Working default | Resolve during |
 | --- | --- | --- |
 | Project name | FedResearch | Phase 0 |
-| Corpus | Confirmed 20-paper corpus; expand for demonstrated coverage needs | Confirmed |
+| Corpus | 40 papers: existing 20 plus 20 selected additions | Agreed; acquisition/reprocessing in progress |
 | Generation and embeddings | Claude Haiku 5.5; Voyage 4 Large, 2048 dimensions | Index, cited development answers and baseline diagnostics verified live |
 | PDF parser | PyMuPDF, with layout quality gate | Phase 1 |
 | Retrieval storage | Chroma, SQLite, BM25, NetworkX | Phase 0 compatibility check |

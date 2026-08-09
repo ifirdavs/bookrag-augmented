@@ -1,8 +1,7 @@
 """Shared filtered retrieval pipeline, optional reranking and final evidence budgeting."""
 
+import math
 import time
-
-import tiktoken
 
 from fedresearch.corpus.manifest import load_manifest, matching_papers
 from fedresearch.indexing.pipeline import current_index, source_identity
@@ -12,6 +11,7 @@ from fedresearch.retrieval.evidence import deduplicate_candidates, pack_evidence
 from fedresearch.retrieval.reranking import VoyageReranker
 from fedresearch.settings import Settings
 from fedresearch.storage.metadata_store import MetadataStore
+from fedresearch.tokenization import load_tokenizer
 
 
 class RetrievalService:
@@ -66,8 +66,10 @@ class RetrievalService:
         year_from: int | None = None,
         year_to: int | None = None,
         method: str | None = None,
+        *,
+        candidate_pool: list[tuple[str, float]] | None = None,
     ):
-        """Search filtered dense vectors, optionally rerank and pack source evidence within shared budgets."""
+        """Search or replay dense candidates, optionally rerank and pack source evidence within budgets."""
         started = time.perf_counter()
         if mode != "dense":
             raise ValueError("Only dense retrieval is implemented in Phase 2")
@@ -75,10 +77,11 @@ class RetrievalService:
         top_k = config.top_k if top_k is None else top_k
         if not 1 <= top_k <= min(20, config.candidate_limit):
             raise ValueError("top_k must be within the configured candidate limit and 1–20")
-        encoding = tiktoken.get_encoding(self.settings.preprocessing.tokenizer)
+        preprocessing = self.settings.preprocessing
+        tokenizer = load_tokenizer(preprocessing.tokenizer, preprocessing.tokenizer_revision)
         if (
             not query.strip()
-            or len(encoding.encode(query, disallowed_special=())) > config.max_query_tokens
+            or len(tokenizer.encode(query, add_special_tokens=False)) > config.max_query_tokens
         ):
             raise ValueError("Query is empty or exceeds the configured token budget")
         papers = matching_papers(self.store.papers(), paper_ids)
@@ -104,7 +107,21 @@ class RetrievalService:
             ]
         before = dict(self.provider.usage)
         ranked = []
-        if allowed and chunk_ids != []:
+        if candidate_pool is not None:
+            ranked = list(candidate_pool)
+            if (
+                len(ranked) > config.candidate_limit
+                or len({identifier for identifier, _ in ranked}) != len(ranked)
+                or any(not math.isfinite(score) for _, score in ranked)
+                or any(
+                    self.store.chunk(identifier).paper_id not in allowed for identifier, _ in ranked
+                )
+                or (chunk_ids is not None and any(i not in chunk_ids for i, _ in ranked))
+            ):
+                raise ValueError(
+                    "Saved candidates violate the candidate limit, scores or source filters"
+                )
+        elif allowed and chunk_ids != []:
             vector = self.provider.embed([query], input_type="query")[0]
             ranked = self.vectors.query(vector, config.candidate_limit, allowed, chunk_ids)
         candidates = [{"chunk_id": identifier, "score": score} for identifier, score in ranked]
@@ -147,6 +164,7 @@ class RetrievalService:
                 "method": method,
             },
             "candidates": candidates,
+            "candidate_source": "saved_pool" if candidate_pool is not None else "dense_search",
             "reranking": reranking,
             "ranking_score": "reranker_relevance" if reranking["enabled"] else "cosine_similarity",
             "embedding_usage": usage,

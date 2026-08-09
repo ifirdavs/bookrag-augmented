@@ -1,0 +1,876 @@
+{
+  "recorded_date": "2026-10-18",
+  "timezone": "Asia/Tashkent",
+  "corpus": {
+    "papers": 40,
+    "pages": 937,
+    "blocks": 47592,
+    "sections": 955,
+    "chunks": 1158
+  },
+  "index_id": "6f8ba8be92dcc84b51a5514f",
+  "runs": {
+    "B0_dev": {
+      "run_id": "640d302142b1483cb256139526f5a3bc",
+      "sha256": "966c549469de0f817a0fc9fa07ea6ed8aaf9b02f77cfad4af31daea813000dae",
+      "created_at": "2026-10-17T17:39:16.973678+00:00",
+      "split": "dev",
+      "questions": 5,
+      "failures": 0,
+      "positive_metric_denominator": 5,
+      "span_precision_at_5": 0.16,
+      "evidence_group_recall_at_5": 0.4666666666666667,
+      "complete_coverage_at_5": 0.4,
+      "complete_questions": 2,
+      "unanswerable_questions": 0,
+      "unanswerable_abstentions_with_zero_claims": 0,
+      "positive_model_sufficiency": {
+        "sufficient": 4,
+        "partial": 1
+      },
+      "sum_question_seconds": 23.672494873870164,
+      "timing_scope": "query embedding/search, packing and generation",
+      "usage": {
+        "query_embedding_requests": 5,
+        "query_embedding_input_tokens": 80,
+        "reranking_requests": 0,
+        "reranking_input_tokens": 0,
+        "generation_responses": 5,
+        "generation_input_tokens": 31365,
+        "generation_output_tokens": 3430
+      },
+      "per_question": [
+        {
+          "question_id": "dev01",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "fedavg_mechanism"
+          ]
+        },
+        {
+          "question_id": "dev02",
+          "status": "ok",
+          "precision_at_k": 0.4,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "proximal_benefits"
+          ]
+        },
+        {
+          "question_id": "dev03",
+          "status": "ok",
+          "precision_at_k": 0.0,
+          "evidence_group_recall_at_k": 0.0,
+          "complete_coverage_at_k": 0,
+          "covered_groups": []
+        },
+        {
+          "question_id": "dev04",
+          "status": "ok",
+          "precision_at_k": 0.0,
+          "evidence_group_recall_at_k": 0.0,
+          "complete_coverage_at_k": 0,
+          "covered_groups": []
+        },
+        {
+          "question_id": "dev05",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 0.3333333333333333,
+          "complete_coverage_at_k": 0,
+          "covered_groups": [
+            "simulation"
+          ]
+        }
+      ]
+    },
+    "B0_R_dev": {
+      "run_id": "7cdba7ce2bb04c1aa1cf357c66bec81e",
+      "sha256": "e60843ef2ccd497871eeaa40fbffe64efcf3e3f535b383dcc91579accce8aac0",
+      "created_at": "2026-10-17T18:07:33.096537+00:00",
+      "split": "dev",
+      "questions": 5,
+      "failures": 0,
+      "positive_metric_denominator": 5,
+      "span_precision_at_5": 0.27999999999999997,
+      "evidence_group_recall_at_5": 0.8,
+      "complete_coverage_at_5": 0.8,
+      "complete_questions": 4,
+      "unanswerable_questions": 0,
+      "unanswerable_abstentions_with_zero_claims": 0,
+      "positive_model_sufficiency": {
+        "sufficient": 4,
+        "partial": 1
+      },
+      "sum_question_seconds": 25.483932292903773,
+      "timing_scope": "reranking/packing and generation; original query embedding/search excluded",
+      "usage": {
+        "query_embedding_requests": 0,
+        "query_embedding_input_tokens": 0,
+        "reranking_requests": 5,
+        "reranking_input_tokens": 61382,
+        "generation_responses": 5,
+        "generation_input_tokens": 31080,
+        "generation_output_tokens": 3563
+      },
+      "per_question": [
+        {
+          "question_id": "dev01",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "fedavg_mechanism"
+          ]
+        },
+        {
+          "question_id": "dev02",
+          "status": "ok",
+          "precision_at_k": 0.4,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "proximal_benefits"
+          ]
+        },
+        {
+          "question_id": "dev03",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "control_variates"
+          ]
+        },
+        {
+          "question_id": "dev04",
+          "status": "ok",
+          "precision_at_k": 0.0,
+          "evidence_group_recall_at_k": 0.0,
+          "complete_coverage_at_k": 0,
+          "covered_groups": []
+        },
+        {
+          "question_id": "dev05",
+          "status": "ok",
+          "precision_at_k": 0.6,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "mechanism",
+            "simulation",
+            "real_experiments"
+          ]
+        }
+      ]
+    },
+    "B0_test": {
+      "run_id": "81929cc51c1e4dbfb8c747a7547bc416",
+      "sha256": "e0c0ba1d4cf24ec1cf7333bc2b05fd3540b1799f9661d5aa4535c87a91c6d18a",
+      "created_at": "2026-10-17T22:50:49.596467+00:00",
+      "split": "test",
+      "questions": 15,
+      "failures": 0,
+      "positive_metric_denominator": 13,
+      "span_precision_at_5": 0.1076923076923077,
+      "evidence_group_recall_at_5": 0.41025641025641024,
+      "complete_coverage_at_5": 0.38461538461538464,
+      "complete_questions": 5,
+      "unanswerable_questions": 2,
+      "unanswerable_abstentions_with_zero_claims": 2,
+      "positive_model_sufficiency": {
+        "sufficient": 10,
+        "partial": 3
+      },
+      "sum_question_seconds": 64.46173420688137,
+      "timing_scope": "query embedding/search, packing and generation",
+      "usage": {
+        "query_embedding_requests": 15,
+        "query_embedding_input_tokens": 275,
+        "reranking_requests": 0,
+        "reranking_input_tokens": 0,
+        "generation_responses": 15,
+        "generation_input_tokens": 92920,
+        "generation_output_tokens": 8210
+      },
+      "per_question": [
+        {
+          "question_id": "test01",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "federated_constraints"
+          ]
+        },
+        {
+          "question_id": "test02",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "mnist_partition"
+          ]
+        },
+        {
+          "question_id": "test03",
+          "status": "ok",
+          "precision_at_k": 0.0,
+          "evidence_group_recall_at_k": 0.0,
+          "complete_coverage_at_k": 0,
+          "covered_groups": []
+        },
+        {
+          "question_id": "test04",
+          "status": "ok",
+          "precision_at_k": 0.4,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "partial_work"
+          ]
+        },
+        {
+          "question_id": "test05",
+          "status": "ok",
+          "precision_at_k": 0.0,
+          "evidence_group_recall_at_k": 0.0,
+          "complete_coverage_at_k": 0,
+          "covered_groups": []
+        },
+        {
+          "question_id": "test06",
+          "status": "ok",
+          "precision_at_k": 0.0,
+          "evidence_group_recall_at_k": 0.0,
+          "complete_coverage_at_k": 0,
+          "covered_groups": []
+        },
+        {
+          "question_id": "test07",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "objective_inconsistency",
+            "normalized_averaging"
+          ]
+        },
+        {
+          "question_id": "test08",
+          "status": "ok",
+          "precision_at_k": 0.0,
+          "evidence_group_recall_at_k": 0.0,
+          "complete_coverage_at_k": 0,
+          "covered_groups": []
+        },
+        {
+          "question_id": "test09",
+          "status": "ok",
+          "precision_at_k": 0.0,
+          "evidence_group_recall_at_k": 0.0,
+          "complete_coverage_at_k": 0,
+          "covered_groups": []
+        },
+        {
+          "question_id": "test10",
+          "status": "ok",
+          "precision_at_k": 0.0,
+          "evidence_group_recall_at_k": 0.0,
+          "complete_coverage_at_k": 0,
+          "covered_groups": []
+        },
+        {
+          "question_id": "test11",
+          "status": "ok",
+          "precision_at_k": 0.0,
+          "evidence_group_recall_at_k": 0.0,
+          "complete_coverage_at_k": 0,
+          "covered_groups": []
+        },
+        {
+          "question_id": "test12",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "ditto_constraints"
+          ]
+        },
+        {
+          "question_id": "test13",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 0.3333333333333333,
+          "complete_coverage_at_k": 0,
+          "covered_groups": [
+            "ditto"
+          ]
+        },
+        {
+          "question_id": "test14",
+          "status": "ok",
+          "precision_at_k": null,
+          "evidence_group_recall_at_k": null,
+          "complete_coverage_at_k": null,
+          "covered_groups": []
+        },
+        {
+          "question_id": "test15",
+          "status": "ok",
+          "precision_at_k": null,
+          "evidence_group_recall_at_k": null,
+          "complete_coverage_at_k": null,
+          "covered_groups": []
+        }
+      ]
+    },
+    "B0_R_test": {
+      "run_id": "31200136e531442788c1df1c0a21b052",
+      "sha256": "875acd3af3532077d6a119a5e0804456b1e97878aa6ff3639c8ac83ddedc1439",
+      "created_at": "2026-10-17T23:19:12.051558+00:00",
+      "split": "test",
+      "questions": 15,
+      "failures": 0,
+      "positive_metric_denominator": 13,
+      "span_precision_at_5": 0.2153846153846154,
+      "evidence_group_recall_at_5": 0.8076923076923077,
+      "complete_coverage_at_5": 0.7692307692307693,
+      "complete_questions": 10,
+      "unanswerable_questions": 2,
+      "unanswerable_abstentions_with_zero_claims": 2,
+      "positive_model_sufficiency": {
+        "sufficient": 10,
+        "partial": 3
+      },
+      "sum_question_seconds": 58.41139833221678,
+      "timing_scope": "reranking/packing and generation; original query embedding/search excluded",
+      "usage": {
+        "query_embedding_requests": 0,
+        "query_embedding_input_tokens": 0,
+        "reranking_requests": 15,
+        "reranking_input_tokens": 181734,
+        "generation_responses": 15,
+        "generation_input_tokens": 93760,
+        "generation_output_tokens": 8001
+      },
+      "per_question": [
+        {
+          "question_id": "test01",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "federated_constraints"
+          ]
+        },
+        {
+          "question_id": "test02",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "mnist_partition"
+          ]
+        },
+        {
+          "question_id": "test03",
+          "status": "ok",
+          "precision_at_k": 0.4,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "communication"
+          ]
+        },
+        {
+          "question_id": "test04",
+          "status": "ok",
+          "precision_at_k": 0.4,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "partial_work"
+          ]
+        },
+        {
+          "question_id": "test05",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 0.5,
+          "complete_coverage_at_k": 0,
+          "covered_groups": [
+            "fedbn_feature_shift"
+          ]
+        },
+        {
+          "question_id": "test06",
+          "status": "ok",
+          "precision_at_k": 0.0,
+          "evidence_group_recall_at_k": 0.0,
+          "complete_coverage_at_k": 0,
+          "covered_groups": []
+        },
+        {
+          "question_id": "test07",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "objective_inconsistency",
+            "normalized_averaging"
+          ]
+        },
+        {
+          "question_id": "test08",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "optimizer_roles"
+          ]
+        },
+        {
+          "question_id": "test09",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "fedbn"
+          ]
+        },
+        {
+          "question_id": "test10",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "model_contrast"
+          ]
+        },
+        {
+          "question_id": "test11",
+          "status": "ok",
+          "precision_at_k": 0.4,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "pfedme",
+            "fedmd"
+          ]
+        },
+        {
+          "question_id": "test12",
+          "status": "ok",
+          "precision_at_k": 0.2,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "ditto_constraints"
+          ]
+        },
+        {
+          "question_id": "test13",
+          "status": "ok",
+          "precision_at_k": 0.0,
+          "evidence_group_recall_at_k": 0.0,
+          "complete_coverage_at_k": 0,
+          "covered_groups": []
+        },
+        {
+          "question_id": "test14",
+          "status": "ok",
+          "precision_at_k": null,
+          "evidence_group_recall_at_k": null,
+          "complete_coverage_at_k": null,
+          "covered_groups": []
+        },
+        {
+          "question_id": "test15",
+          "status": "ok",
+          "precision_at_k": null,
+          "evidence_group_recall_at_k": null,
+          "complete_coverage_at_k": null,
+          "covered_groups": []
+        }
+      ]
+    }
+  },
+  "assistant_answer_review": {
+    "reviewer": "Codex assistant",
+    "review_type": "Exploratory post-run relevance/expected-point coverage review",
+    "independent_human_review": false,
+    "blind_review": false,
+    "additional_Claude_or_Voyage_requests": 0,
+    "scope": "All 40 answer texts read against the unchanged expected points; targeted cited passages inspected for substantive issues. Not an exhaustive per-claim citation-support or correctness audit.",
+    "rubric": {
+      "0": "Does not address the requested facts.",
+      "1": "Addresses part of the question but leaves required facts missing.",
+      "2": "Addresses the requested core facts; extra claims and factual risks are recorded separately.",
+      "null": "Unanswerable question: abstention assessed separately."
+    },
+    "caveat": "These subjective relevance/coverage scores are not correctness, groundedness or human accuracy scores. The rubric was applied after execution; it is supplementary to the fixed source-overlap evaluation.",
+    "questions": [
+      {
+        "split": "dev",
+        "question_id": "dev01",
+        "question": "What local computation and server aggregation distinguish FedAvg from a single local gradient step?",
+        "expected_points": [
+          "Clients perform multiple local gradient updates before the server averages the resulting models."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both explain repeated local computation and weighted server model averaging; B0 adds an unrequested normalization discussion."
+      },
+      {
+        "split": "dev",
+        "question_id": "dev02",
+        "question": "What two benefits do the FedProx authors attribute to its proximal term?",
+        "expected_points": [
+          "It restricts local updates towards the initial global model to address statistical heterogeneity.",
+          "It permits safer incorporation of variable local work due to systems heterogeneity."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both state the statistical-heterogeneity and variable-local-work benefits."
+      },
+      {
+        "split": "dev",
+        "question_id": "dev03",
+        "question": "How does SCAFFOLD correct client drift?",
+        "expected_points": [
+          "It uses control variates (variance reduction) to correct client drift in local updates."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both address control-variate correction. Reranked claim 2 has a verbal correction-sign error despite a correct equation; relevance is not correctness."
+      },
+      {
+        "split": "dev",
+        "question_id": "dev04",
+        "question": "How do FedProx and SCAFFOLD differ in the mechanism they use to address heterogeneous client updates?",
+        "expected_points": [
+          "FedProx restricts local updates with a proximal term relative to the global model.",
+          "SCAFFOLD corrects drift using control variates."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both explain the proximal penalty versus control variates. The reranked partial label reflects extra caveats rather than a missing requested mechanism."
+      },
+      {
+        "split": "dev",
+        "question_id": "dev05",
+        "question": "How does SCAFFOLD correct drift, and what simulated and real-data experiments do its authors describe?",
+        "expected_points": [
+          "Control variates correct client drift.",
+          "The authors confirm theory on simulated data and extended MNIST.",
+          "The EMNIST experiments vary local updates, participating clients, and client similarity."
+        ],
+        "B0_relevance_0_to_2": 1,
+        "B0_R_relevance_0_to_2": 1,
+        "rationale": "Both cover control variates, simulation and EMNIST, but omit part of the requested EMNIST factor list, especially varying participating-client count/local epochs."
+      },
+      {
+        "split": "test",
+        "question_id": "test01",
+        "question": "What four properties make federated optimization different in the original FedAvg paper?",
+        "expected_points": [
+          "Non-IID data.",
+          "Unbalanced local data sizes.",
+          "Massively distributed clients.",
+          "Limited communication."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both list the four requested FedAvg properties."
+      },
+      {
+        "split": "test",
+        "question_id": "test02",
+        "question": "How is the pathological non-IID MNIST partition constructed in the original FedAvg experiments?",
+        "expected_points": [
+          "Sort examples by digit label.",
+          "Divide the data into 200 shards of 300 examples.",
+          "Assign two shards to each of 100 clients."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both specify label sorting, 200 shards of 300 examples, and two shards per client."
+      },
+      {
+        "split": "test",
+        "question_id": "test03",
+        "question": "In the original FedAvg description, what is communicated to the server instead of local training data?",
+        "expected_points": [
+          "The local dataset is never uploaded; clients communicate a model update computed from it."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both describe communicating locally computed model updates instead of local data; B0 uses an alternative algorithm passage."
+      },
+      {
+        "split": "test",
+        "question_id": "test04",
+        "question": "How does FedProx handle clients that can perform only partial local work?",
+        "expected_points": [
+          "It allows variable amounts of local work according to available resources.",
+          "It aggregates partial solutions from stragglers instead of dropping them."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both explain variable local work and aggregation of partial straggler solutions; extra simulations are not needed for the requested answer."
+      },
+      {
+        "split": "test",
+        "question_id": "test05",
+        "question": "How does the feature-shift setting of FedBN differ from the non-IID client-data property described in the original FedAvg paper?",
+        "expected_points": [
+          "FedAvg describes local datasets that are not representative of the population distribution.",
+          "FedBN focuses on different feature distributions, such as different scanners or scenery, and uses local batch normalization."
+        ],
+        "B0_relevance_0_to_2": 1,
+        "B0_R_relevance_0_to_2": 1,
+        "rationale": "Both describe FedBN feature shift but lack the original FedAvg description and omit the local-BN mechanism requested by the reference points. No FedAvg paper is present in the candidate pool."
+      },
+      {
+        "split": "test",
+        "question_id": "test06",
+        "question": "For quadratic objectives, what benefit does SCAFFOLD claim from similarity in client data?",
+        "expected_points": [
+          "It can exploit client-data similarity to achieve faster convergence, quantifying the usefulness of local steps."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both state that client/Hessian similarity makes local steps useful for faster convergence or fewer communication rounds in the quadratic setting."
+      },
+      {
+        "split": "test",
+        "question_id": "test07",
+        "question": "What is objective inconsistency in the FedNova paper, and what kind of averaging method is proposed to address it?",
+        "expected_points": [
+          "Naive aggregation with heterogeneous local updates can converge to a stationary point of a mismatched objective.",
+          "FedNova uses normalized averaging to eliminate this inconsistency while preserving fast error convergence."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both explain the mismatched objective and FedNova normalized averaging."
+      },
+      {
+        "split": "test",
+        "question_id": "test08",
+        "question": "In the FedOpt framework, where are the client and server optimizers applied?",
+        "expected_points": [
+          "Clients train for multiple epochs with a client optimizer on local losses.",
+          "The server applies a gradient-based server optimizer to the average client model update."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both place client optimization on local losses and server optimization on the averaged client model difference/pseudo-gradient."
+      },
+      {
+        "split": "test",
+        "question_id": "test09",
+        "question": "What data heterogeneity does FedBN target and what does it do before averaging models?",
+        "expected_points": [
+          "Feature-shift non-IID data, including scanner/sensor or scenery differences.",
+          "It uses local batch normalization to alleviate feature shift."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both describe feature shift and keeping BN local; the reranked answer also gives the scanner/scenery examples."
+      },
+      {
+        "split": "test",
+        "question_id": "test10",
+        "question": "How does MOON’s model-level contrastive learning differ from comparing representations of different images?",
+        "expected_points": [
+          "It compares representations learned by different models.",
+          "It maximizes agreement between the current local model representation and the global model representation."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both distinguish representations from different models and the local/global positive pair. B0 adds an overly broad contrastive-learning scope statement copied from the paper's SimCLR discussion."
+      },
+      {
+        "split": "test",
+        "question_id": "test11",
+        "question": "How do pFedMe and FedMD address different forms of client heterogeneity?",
+        "expected_points": [
+          "pFedMe addresses statistical diversity with personalized optimization using Moreau envelopes of client losses.",
+          "FedMD addresses independently designed heterogeneous models through transfer learning and knowledge distillation."
+        ],
+        "B0_relevance_0_to_2": 1,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "B0 has no FedMD evidence and only answers the pFedMe half. Reranking recovers the FedMD abstract plus pFedMe Moreau-envelope evidence and answers both requested forms of heterogeneity, despite a model partial label."
+      },
+      {
+        "split": "test",
+        "question_id": "test12",
+        "question": "How does the Ditto paper define fairness, and what robustness concerns does it connect with fairness?",
+        "expected_points": [
+          "Fairness is uniformity of performance across devices.",
+          "It considers robustness to data and model poisoning attacks and their competition with fairness under statistical heterogeneity."
+        ],
+        "B0_relevance_0_to_2": 2,
+        "B0_R_relevance_0_to_2": 2,
+        "rationale": "Both define across-device uniformity and connect fairness to poisoning robustness."
+      },
+      {
+        "split": "test",
+        "question_id": "test13",
+        "question": "Using only q-FFL, Ditto, and Agnostic Federated Learning in this corpus, summarize three ways fairness enters their problem formulations.",
+        "expected_points": [
+          "q-FFL encourages a more uniform accuracy distribution across devices.",
+          "Ditto couples device performance uniformity with robustness and personalization.",
+          "Agnostic FL optimizes for any target distribution formed by a mixture of client distributions, which yields a fairness notion."
+        ],
+        "B0_relevance_0_to_2": 1,
+        "B0_R_relevance_0_to_2": 1,
+        "rationale": "B0 discusses all three names but omits the AFL target-mixture formulation. Reranking drops Ditto entirely and also relies on a secondary AFL description; both answers remain partial."
+      },
+      {
+        "split": "test",
+        "question_id": "test14",
+        "question": "What BLEU score does the original SCAFFOLD paper report for English–Uzbek translation?",
+        "expected_points": [],
+        "B0_relevance_0_to_2": null,
+        "B0_R_relevance_0_to_2": null,
+        "rationale": "Both abstain without inventing the unsupported BLEU result."
+      },
+      {
+        "split": "test",
+        "question_id": "test15",
+        "question": "What test accuracy does the indexed 2026 FedQuantum-X paper report on quantum hardware?",
+        "expected_points": [],
+        "B0_relevance_0_to_2": null,
+        "B0_R_relevance_0_to_2": null,
+        "rationale": "Both abstain without inventing the absent paper's quantum-hardware accuracy."
+      }
+    ],
+    "split_summary": {
+      "dev": {
+        "answerable_questions": 5,
+        "B0_mean_relevance": 1.8,
+        "B0_R_mean_relevance": 1.8,
+        "B0_full_requested_point_coverage": 4,
+        "B0_R_full_requested_point_coverage": 4
+      },
+      "test": {
+        "answerable_questions": 13,
+        "B0_mean_relevance": 1.7692307692307692,
+        "B0_R_mean_relevance": 1.8461538461538463,
+        "B0_full_requested_point_coverage": 10,
+        "B0_R_full_requested_point_coverage": 11
+      }
+    },
+    "observed_source_checks": [
+      {
+        "question_id": "dev03",
+        "mode": "B0-R",
+        "issue": "The correct formula g_i - c_i + c is followed by the opposite verbal gradient shift c_i - c. The additive gradient correction is c - c_i.",
+        "evidence_id": "E2",
+        "paper_id": "scaffold",
+        "pages": [
+          4
+        ],
+        "chunk_id": "scaffold:5698214a4f6e337e:c00007:b135d6af"
+      },
+      {
+        "question_id": "dev05",
+        "mode": "B0-R",
+        "issue": "Selected E3 explicitly lists local epochs, participating-client count and client similarity, but the answer omits part of this factor list.",
+        "evidence_id": "E3",
+        "paper_id": "scaffold",
+        "pages": [
+          7
+        ],
+        "chunk_id": "scaffold:5698214a4f6e337e:c00013:2f44ba39"
+      },
+      {
+        "question_id": "test05",
+        "issue": "No original FedAvg passage can be recovered by reranking this pool.",
+        "candidate_papers": {
+          "fedbn": 19,
+          "noniid_silos": 1
+        },
+        "B0_final_papers": {
+          "fedbn": 5
+        },
+        "B0_R_final_papers": {
+          "fedbn": 5
+        }
+      },
+      {
+        "question_id": "test11",
+        "issue": "Reranking recovers the second paper needed for the comparison. FedMD E1 and pFedMe E3 abstracts directly support the two requested mechanisms.",
+        "candidate_papers": {
+          "pfedme": 8,
+          "fedmd": 3,
+          "personalization_survey": 7,
+          "fl_challenges": 1,
+          "survey": 1
+        },
+        "B0_final_papers": {
+          "pfedme": 5
+        },
+        "B0_R_final_papers": {
+          "fedmd": 1,
+          "pfedme": 4
+        }
+      },
+      {
+        "question_id": "test13",
+        "issue": "Reranking suppresses cross-paper coverage; final evidence contains only q-FFL although the pool includes Ditto and AFL. The secondary q-FFL description of AFL as worst-device optimization does not state the reference target-mixture formulation.",
+        "candidate_papers": {
+          "qffl": 12,
+          "ditto": 5,
+          "agnostic": 1,
+          "survey": 1,
+          "fl_challenges": 1
+        },
+        "B0_final_papers": {
+          "qffl": 3,
+          "ditto": 2
+        },
+        "B0_R_final_papers": {
+          "qffl": 5
+        }
+      }
+    ]
+  },
+  "total_reported_evaluation_usage": {
+    "query_embedding_requests": 20,
+    "query_embedding_input_tokens": 355,
+    "reranking_requests": 20,
+    "reranking_input_tokens": 243116,
+    "generation_responses": 40,
+    "generation_input_tokens": 249125,
+    "generation_output_tokens": 23204
+  },
+  "completed_answer_executions": 40,
+  "execution_failures": 0,
+  "limitations": [
+    "Sparse gold spans may miss equivalent valid evidence.",
+    "One small benchmark with one generated answer per mode/question does not establish general superiority.",
+    "Fresh Claude generation can vary; replay controls candidate inputs, not generation randomness.",
+    "Replay latency excludes original query embedding/search and is not full end-to-end latency.",
+    "Assistant relevance review is not independent human scoring or an exhaustive claim-support audit.",
+    "Question labels, models, prompt and comparison parameters remained fixed throughout the held-out comparison."
+  ]
+}

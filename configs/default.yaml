@@ -5,8 +5,9 @@ paths:
   indexes: artifacts/indexes
   runs: artifacts/runs
 preprocessing:
-  parser_version: pymupdf-columns-v3
-  tokenizer: cl100k_base
+  parser_version: pymupdf-columns-v4
+  tokenizer: voyageai/voyage-4-large
+  tokenizer_revision: bb931c2635a93efe400c24741363d8ff61d7bb32
   chunk_tokens: 600
   overlap_tokens: 100
   exclude_references: true

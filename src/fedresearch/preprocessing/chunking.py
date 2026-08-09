@@ -1,11 +1,8 @@
 """Fixed token windows with original block, section and page provenance."""
 
-from bisect import bisect_left
-
-import tiktoken
-
 from fedresearch.schemas import Block, Chunk, Section
 from fedresearch.settings import Preprocessing
+from fedresearch.tokenization import load_tokenizer
 from fedresearch.util import digest
 
 
@@ -31,29 +28,25 @@ def fixed_chunks(
         start = len(text)
         text += block.text
         placements.append((start, len(text), block))
-    encoding = tiktoken.get_encoding(config.tokenizer)
-    tokens = encoding.encode(text, disallowed_special=())
-    byte_offsets = [0]
-    for char in text:
-        byte_offsets.append(byte_offsets[-1] + len(char.encode("utf-8")))
-    byte_boundaries = set(byte_offsets)
-    token_offsets = [0]
-    for token in tokens:
-        token_offsets.append(token_offsets[-1] + len(encoding.decode_single_token_bytes(token)))
+    tokenizer = load_tokenizer(config.tokenizer, config.tokenizer_revision)
+    offsets = tokenizer.encode(text, add_special_tokens=False).offsets
     chunks = []
     start_token = 0
-    while start_token < len(tokens):
-        end_token = min(start_token + config.chunk_tokens, len(tokens))
-        # End a window only on a Unicode boundary, avoiding U+FFFD or lost characters.
-        while end_token > start_token and token_offsets[end_token] not in byte_boundaries:
+    while start_token < len(offsets):
+        end_token = min(start_token + config.chunk_tokens, len(offsets))
+        start_char = offsets[start_token][0]
+        while end_token > start_token:
+            end_char = offsets[end_token - 1][1]
+            window = text[start_char:end_char]
+            value = window.strip()
+            token_count = len(tokenizer.encode(value, add_special_tokens=False))
+            # Preserve whole characters and recount text at its new BPE boundaries.
+            splits_character = end_token < len(offsets) and offsets[end_token][0] < end_char
+            if not splits_character and token_count <= config.chunk_tokens:
+                break
             end_token -= 1
-        start_char = bisect_left(byte_offsets, token_offsets[start_token])
-        end_char = bisect_left(byte_offsets, token_offsets[end_token])
-        window = text[start_char:end_char]
-        left = len(window) - len(window.lstrip())
-        right = len(window.rstrip())
-        start_char += left
-        end_char = start_char + right - left
+        start_char += len(window) - len(window.lstrip())
+        end_char = start_char + len(value)
         spans, page_numbers, section_ids = [], set(), []
         for a, b, block in placements:
             lo, hi = max(start_char, a), min(end_char, b)
@@ -63,7 +56,6 @@ def fixed_chunks(
                 if block.section_id not in section_ids:
                     section_ids.append(block.section_id)
         if spans:
-            value = text[start_char:end_char]
             first = selected[0]
             chunks.append(
                 Chunk(
@@ -76,15 +68,14 @@ def fixed_chunks(
                     section_path=section_map[section_ids[0]].path,
                     section_ids=section_ids,
                     spans=spans,
-                    token_count=len(encoding.encode(value, disallowed_special=())),
+                    token_count=token_count,
                     pages=sorted(page_numbers),
                 )
             )
-        if end_token == len(tokens):
+        if end_token == len(offsets):
             break
         next_start = max(start_token + 1, end_token - config.overlap_tokens)
-        # Move backward to a valid character boundary when overlap is available.
-        while next_start > start_token + 1 and token_offsets[next_start] not in byte_boundaries:
-            next_start -= 1
+        while next_start < len(offsets) and offsets[next_start][0] < offsets[next_start - 1][1]:
+            next_start += 1
         start_token = next_start
     return chunks

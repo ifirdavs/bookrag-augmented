@@ -22,8 +22,9 @@ class Paths(StrictModel):
 
 
 class Preprocessing(StrictModel):
-    parser_version: str = "pymupdf-columns-v3"
-    tokenizer: str = "cl100k_base"
+    parser_version: str = "pymupdf-columns-v4"
+    tokenizer: str = "voyageai/voyage-4-large"
+    tokenizer_revision: str = "bb931c2635a93efe400c24741363d8ff61d7bb32"
     chunk_tokens: int = Field(default=600, ge=64, le=4000)
     overlap_tokens: int = Field(default=100, ge=0)
     exclude_references: bool = True

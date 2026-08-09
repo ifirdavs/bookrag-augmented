@@ -9,7 +9,7 @@ import pymupdf
 
 from fedresearch.preprocessing.chunking import fixed_chunks
 from fedresearch.preprocessing.cleaning import clean_text
-from fedresearch.preprocessing.sections import assign_sections, heading
+from fedresearch.preprocessing.sections import NAMED, assign_sections, heading
 from fedresearch.schemas import Block, Paper, ParsedDocument
 from fedresearch.settings import Preprocessing
 from fedresearch.util import digest, file_sha256
@@ -54,8 +54,19 @@ def extract_items(page) -> list[dict]:
             continue
         groups: list[list[dict]] = []
         for line in block["lines"]:
-            # Some PDFs put both columns into one MuPDF block. Split disjoint lines.
-            if groups and abs(line["bbox"][0] - groups[-1][-1]["bbox"][0]) > page.rect.width * 0.25:
+            previous = groups[-1][-1] if groups else None
+            text = "".join(span["text"] for span in line["spans"]).strip()
+            # Separate disjoint columns and named heading lines merged with prose.
+            if previous and (
+                abs(line["bbox"][0] - previous["bbox"][0]) > page.rect.width * 0.25
+                or (
+                    abs(line["bbox"][1] - previous["bbox"][1]) > 2
+                    and (
+                        NAMED.fullmatch(text)
+                        or NAMED.fullmatch("".join(s["text"] for s in previous["spans"]).strip())
+                    )
+                )
+            ):
                 groups.append([])
             if not groups:
                 groups.append([])
