@@ -130,18 +130,20 @@ This describes the files that exist now. Each Python module and function has a d
 | [`indexing/pipeline.py`](src/fedresearch/indexing/pipeline.py) | Runs preprocessing/index builds and validates saved versions | Coordinates stages and activates only complete compatible indexes |
 | [`indexing/embeddings.py`](src/fedresearch/indexing/embeddings.py) | Caches vectors and embeds missing chunks in batches | Avoids repeating successful API calls after a rebuild/interruption |
 | [`indexing/vector_index.py`](src/fedresearch/indexing/vector_index.py) | Stores/searches vectors in persistent Chroma | Supplies dense candidate retrieval and metadata filters |
+| [`indexing/lexical_index.py`](src/fedresearch/indexing/lexical_index.py) | Builds/searches a persistent SQLite FTS5 BM25 index over the same chunks | Adds word matching without another dependency or model call |
 | [`storage/metadata_store.py`](src/fedresearch/storage/metadata_store.py) | Stores paper/section/block/chunk records in SQLite | Resolves vector hits and citations back to original sources |
 | [`retrieval/service.py`](src/fedresearch/retrieval/service.py) | Applies filters, retrieves, deduplicates, optionally reranks and packs evidence | Gives answers, evaluation and the future agent one retrieval implementation |
 | [`retrieval/evidence.py`](src/fedresearch/retrieval/evidence.py) | Removes source overlap and constructs evidence under the final budget | Prevents duplicate passages and retains citation-ready provenance |
+| [`retrieval/fusion.py`](src/fedresearch/retrieval/fusion.py) | Combines dense/BM25 ranks with RRF and stable ties | Merges searches without mixing their different score scales |
 | [`retrieval/reranking.py`](src/fedresearch/retrieval/reranking.py) | Calls Atlas `rerank-3` and returns validated indices/scores/usage | Adds optional query-passage ranking without changing source text |
 | [`llm/client.py`](src/fedresearch/llm/client.py) | Wraps the official Claude/Voyage SDKs and records usage | Isolates provider requests, vector checks and sanitized errors |
 | [`llm/answering.py`](src/fedresearch/llm/answering.py) | Retrieves evidence, generates structured claims and checks citations | Produces the fixed baseline answer before agent planning |
 | [`evaluation/dataset.py`](src/fedresearch/evaluation/dataset.py) | Loads question labels, verifies source quotes and enforces the held-out freeze | Keeps benchmark labels independent of chunking/retrieval |
 | [`evaluation/retrieval_metrics.py`](src/fedresearch/evaluation/retrieval_metrics.py) | Computes span-based precision/recall/coverage diagnostics | Measures retrieval against the same original evidence across experiments |
-| [`evaluation/runner.py`](src/fedresearch/evaluation/runner.py) | Runs questions, optionally replays saved B0 candidates, and saves evidence/answers, scores, timings and failures | Makes comparisons inspectable and isolates reranking effects |
+| [`evaluation/runner.py`](src/fedresearch/evaluation/runner.py) | Runs questions, optionally replays saved dense/hybrid pools, and saves candidate/final metrics, answers, timing and failures | Makes comparisons inspectable and isolates reranking effects |
 | `__init__.py` files in each package | Mark Python packages; the root also defines the version | Support package imports; they contain no pipeline logic |
 
-The answer prompt lives in `src/fedresearch/llm/prompts/answer.md`. Settings live in `configs/default.yaml`. `configs/experiments/b0_dense.yaml` keeps reranking off; `b0_dense_rerank.yaml` enables it with the same dense candidate pool and final budget. BM25, structural expansion, graph and agent modules will be added in their phases.
+The answer prompt lives in `src/fedresearch/llm/prompts/answer.md`. Settings live in `configs/default.yaml`. B0/B0-R retain their original 20-candidate settings. `b1_hybrid.yaml` and `b1_hybrid_rerank.yaml` select hybrid retrieval with a 40-candidate cap; `b0_dense_40.yaml` provides a matching dense control. Structural expansion, graph and agent modules follow in later phases.
 
 Tests are separate from application code:
 
@@ -152,6 +154,7 @@ Tests are separate from application code:
 | `tests/test_generation_api.py` | Claude structured responses, truncation/refusal handling and sanitized errors |
 | `tests/test_reranking_api.py` | Atlas rerank-3 request/response handling, index validation and empty-scope behavior |
 | `tests/test_settings.py` | Default/experiment YAML merging and path resolution |
+| `tests/test_hybrid.py` | BM25 persistence, exact terms, safe queries, filters and deterministic RRF arithmetic |
 | `tests/test_tokenization.py` | Voyage chunk limits, Unicode coverage, exact source spans and no silent tokenizer truncation/padding |
 
 For a quick review, start with `cli.py` → `llm/answering.py` → `retrieval/service.py` → `retrieval/evidence.py`. Read `retrieval/reranking.py` for the optional ranking stage. `indexing/pipeline.py` is the build path; the PDF layout details are isolated under `preprocessing/`.
@@ -172,7 +175,7 @@ These Markdown files are development notes, not runtime dependencies. The README
 
 ## 6. Proposed technology choices
 
-Phase 0–2 local dependencies are locked in `uv.lock` and tested with Python 3.13.1. Live model access and historical baseline measurements are recorded; the 40-paper Voyage-tokenizer index and all four B0/B0-R development/test runs are verified. Independent human grading is not claimed. Later-phase dependencies remain working design choices.
+Phase 0–3 local dependencies are locked in `uv.lock` and tested with Python 3.13.1. Hybrid search uses Python's existing SQLite FTS5 support, with no added package. Live model access and baseline measurements are recorded; the 40-paper index and all four B0/B0-R development/test runs are verified. Hybrid's matched dense-40/B1 and exact-pool B1/B1-R development comparisons and targeted assistant review are complete. Independent human grading is not claimed.
 
 | Component | Initial choice | Rationale |
 | --- | --- | --- |
@@ -180,7 +183,7 @@ Phase 0–2 local dependencies are locked in `uv.lock` and tested with Python 3.
 | Contracts and settings | Pydantic and YAML | Validate stage inputs and configuration |
 | PDF parsing | PyMuPDF first; evaluate Docling if layout quality fails | Preserve page and bounding-box information |
 | Vector store | Local persistent Chroma | Small corpus, straightforward metadata filtering |
-| Keyword search | BM25 with versioned tokenized-chunk and settings files | Match method names, acronyms, and technical terms; reconstruct the in-memory scorer on load |
+| Keyword search | SQLite FTS5 BM25, persisted alongside Chroma | Match method names, acronyms and technical terms using the same fixed source chunks |
 | Fusion | Reciprocal Rank Fusion | Combine rankings without treating unlike scores as equivalent |
 | Reranking | MongoDB Atlas `rerank-3`, switchable and verified with a small live call | Rescore a bounded candidate pool against the query; evaluate separately from RRF |
 | Metadata and hierarchy | SQLite | Traceable paper, section, block, and chunk lookups |
@@ -206,13 +209,13 @@ The following storage choices are planned for the initial project. **Production 
 | Data | Initial project storage | Production option |
 | --- | --- | --- |
 | **Hierarchical tree** and source metadata | SQLite tables containing paper/section/block IDs, parent links, document order, versions, and provenance | PostgreSQL is preferred for a shared service with concurrent writers and centralized database operations; use parent-ID relationships and recursive queries |
-| **BM25 retrieval data** | Versioned files containing tokenized chunks, stable chunk-ID ordering, tokenizer configuration/version, BM25 variant/parameters, and corpus/index identity | Elasticsearch manages text analysis, persistent lexical indexes, scoring statistics, and BM25 retrieval |
+| **BM25 retrieval data** | `bm25.sqlite` per index, containing an FTS5 index and source/tokenizer/SQLite-version metadata | Elasticsearch manages text analysis, persistent lexical indexes, scoring statistics, and BM25 retrieval |
 | **Knowledge graph** | NetworkX in memory; nodes, edges, graph metadata, and attributes serialized into versioned JSON | Neo4j is suitable when persistent graph traversal and concurrent graph access become important |
 | **Graph–Tree Links** | Indexed SQLite association tables linking entity IDs to tree-node IDs, with separate relation-to-source evidence records | PostgreSQL association tables when hierarchy and graph use separate stores; Neo4j relationships when lightweight document nodes are represented alongside graph entities |
 
 **Hierarchical tree.** SQLite is the persistent source of truth for the initial tree, not merely a cache of an in-memory structure. Store parent IDs and sibling/document order so sections, subsections, paragraphs, tables, and figures can be reconstructed and navigated. PostgreSQL preserves this relational design and supports recursive queries for descendant/ancestor lookup. SQLite can also serve small production workloads; the preference for PostgreSQL applies to a shared service with heavier concurrency and operational requirements. If document nodes are moved into Neo4j, hierarchy can instead be represented through `CONTAINS` relationships.
 
-**BM25.** Persist tokenized chunks and tokenizer/BM25 settings as versioned artifacts under `artifacts/indexes/`; reconstruct the in-memory scorer when loading that index. Keep source text and provenance in SQLite. Query tokenization must use the same configuration as document tokenization. In production, submit chunk text and stable IDs to Elasticsearch and configure its analyzer and BM25 similarity; Elasticsearch handles its own tokenization, term statistics, on-disk inverted indexes, and search execution. We still own source provenance, configuration versioning, and synchronization with other indexes. An Elasticsearch migration is a new retrieval implementation and must be evaluated, since analyzer choices and BM25 variants can change scores and rankings.
+**BM25.** `fedresearch index` builds `artifacts/indexes/<index-id>/bm25.sqlite` from the same chunk IDs/text as Chroma, including when dense vectors are reused. FTS5 persists its own term index; no custom BM25 scorer or extra package is needed. Its metadata pins the dense index ID, chunk fingerprint, SQLite version, `unicode61 remove_diacritics 0` analyzer and built-in BM25 parameters (`k1=1.2`, `b=0.75`). A mismatch requires rebuilding through the same index command. Query words are quoted and OR-connected; FTS5 handles case-insensitive word matching for documents and queries. There is no stemming, synonym expansion or title boosting. BM25 uses words; chunk/evidence budgets still use the official Voyage tokenizer. Filters apply before each search's result cap, with corpus-wide BM25 statistics. Exposed BM25 scores negate SQLite's native score so larger means better. See [SQLite FTS5](https://sqlite.org/fts5.html). An Elasticsearch migration would need evaluation because its analyzer/scoring can change rankings.
 
 **Knowledge graph.** Persist the NetworkX graph using an explicit, versioned node-link JSON schema, including directed/multigraph flags, stable node IDs, relation IDs, edge keys where needed, and JSON-compatible attributes. Preserve multiple assertions and their paper-specific supporting evidence rather than overwriting edges between shared entities. Reload the JSON into NetworkX for bounded traversal. Neo4j is a suitable production property-graph database; choosing it depends on actual traversal, update, and concurrency needs.
 
@@ -259,11 +262,13 @@ Missing or uncertain headings get an explicit fallback section. Unsupported tabl
 7. **Evidence packing:** Select from the resulting ranking, preserve paper diversity for comparisons, and enforce a shared token budget. Record any diversity constraint separately from relevance scores.
 8. **Answering:** Generate claims only from supplied evidence and cite their sources. If required evidence is missing, provide a qualified partial answer or an insufficient-evidence response.
 
-Current B0 settings: 600-token chunks with 100-token overlap, up to 20 Chroma dense candidates, source-overlap deduplication, and up to 5 final evidence items within 4,000 evidence-text tokens. Voyage 4 Large embeds documents and queries at 2048 dimensions. B0-R passes every deduplicated candidate's **text**, together with the query, to `rerank-3`, receives all of them reordered, and applies the same final item/token limits. Chunk IDs resolve the text locally; dense scores are kept for the trace and are not inputs to the reranking API. B0 selects evidence using the dense ranking. Future hybrid retrieval will add BM25/RRF; its starting RRF constant is 60. Tune settings on development questions only.
+Current B0 settings: 600-token chunks with 100-token overlap, up to 20 Chroma dense candidates, source-overlap deduplication, and up to 5 final evidence items within 4,000 evidence-text tokens. Voyage 4 Large embeds documents and queries at 2048 dimensions. B0-R passes every deduplicated candidate's **text**, together with the query, to `rerank-3`, receives all of them reordered, and applies the same final item/token limits. Chunk IDs resolve the text locally; dense scores are kept for the trace and are not inputs to the reranking API. B0 selects evidence using the dense ranking.
+
+**Phase 3 mental model:** dense search finds similar meaning; BM25 finds matching words; RRF combines their ranked lists. B1 takes up to 40 hits from each, adds `1 / (60 + rank)` for each appearance, keeps the best 40 (ties by chunk ID), removes source overlap, then selects up to five chunks within 4,000 Voyage tokens. B1-R inserts `rerank-3` after deduplication and before that final selection. Raw dense/BM25 scores are retained for inspection, not added together. An empty result list contributes nothing; search/provider errors fail explicitly. The formula follows the [original RRF paper](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf).
 
 Chunk sizes, evidence-text counts and the 1,024-token query limit use the official `voyageai/voyage-4-large` tokenizer, pinned to revision `bb931c2635a93efe400c24741363d8ff61d7bb32`. It runs locally through Hugging Face `tokenizers`; the first use downloads approximately 7 MB into the standard Hugging Face cache (`HF_HOME` can relocate it). No embedding API request or API key is needed for tokenization. Unicode character offsets preserve original-source spans; boundary adjustments can slightly reduce overlap. The 4,000-token budget counts passage text, excluding citation labels and prompt formatting. It is not a Claude context or billing-token count; actual embedding, reranking and generation usage comes from the respective APIs. [Voyage tokenization](https://www.mongodb.com/docs/voyageai/tutorials/tokenization/)
 
-The reranking adapter is implemented and can later be reused after structure and graph expansion. Current settings are `reranking.enabled: false`, `reranking.model: rerank-3` and SDK timeout/retry limits. The existing `retrieval.candidate_limit` also caps reranker inputs; there is no separate candidate-budget setting. B0 and B0-R use the same 20 candidates before deduplication. Phase 3 can test a shared 40-candidate cap for hybrid/reranked pairs. Keep final top-k and evidence-token budgets unchanged. Silent truncation is disabled; the API rejects over-limit inputs instead of dropping source text. Provider failures must be recorded as failed reranking runs; any interactive fallback to the existing ranking must be explicit in the trace.
+The shared reranking adapter can later follow structure/graph expansion. Defaults remain dense retrieval and `reranking.enabled: false`; `reranking.model` is `rerank-3`. `retrieval.mode` selects `dense` or `hybrid`, `candidate_limit` caps each search and the merged pool, and `rrf_constant` defaults to 60. B0/B0-R use 20; B1/B1-R use 40. Final item/token budgets remain unchanged. Silent truncation is disabled; provider failures are recorded without falling back to a different method.
 
 ## 9. Knowledge graph scope
 
@@ -321,6 +326,7 @@ Do not use retrieval output itself as the gold annotation. Freeze held-out label
 | --- | --- | --- |
 | B0 | Fixed chunks, dense retrieval | Conventional baseline |
 | B0-R | B0 plus rerank-3 on the same deduplicated candidates | Isolates reranking on the dense baseline |
+| B0-40 | Dense retrieval with a 40-candidate cap | Matches B1's candidate budget while preserving original B0 results |
 | B1 | Same chunks plus BM25 and RRF | Benefit of hybrid retrieval |
 | B2 | Section-aware chunks and bounded hierarchy expansion | Benefit of the structure package beyond B1 |
 | B3 | B2 plus evidence-linked graph expansion | Incremental benefit of the graph |
@@ -422,13 +428,42 @@ Live access was verified for Claude Haiku 5.5, Atlas Voyage 4 Large (2048 dimens
 
 Citations appear as `[E1]` and resolve to the original paper/version, all contributing section paths, 1-based PDF pages and raw block spans. `--json` includes the answer, cited evidence, usage and execution trace. Citation existence/provenance is checked in code; whether evidence supports a claim requires review. Unsupported questions should yield partial answers or insufficient evidence according to the supplied source text; one live unsupported-measurement check returned insufficient evidence; both designated held-out unanswerables also returned insufficient with zero claims in both retrieval modes.
 
-`evaluate --candidate-source <B0-run.json>` verifies the source index, label hash, split, question IDs, prompt and settings (allowing only the reranking enable switch). It reuses exact candidate IDs/order/cosine scores and skips query embedding/search while using the normal deduplication, ranking, packing and answer workflow. The new run records source-run identity/hash and makes its reduced timing scope explicit. Claude is called once per question with nonempty evidence; an empty evidence list produces an insufficient answer locally. Every final selected chunk is sent in the prompt: `records[].answer.evidence` stores that input set, while `records[].answer.citations` contains the subset actually cited. Dense search starts with up to 20 candidates; reranking/budgeting determines the final up-to-five set. The query embedding is transient and has no key in `run.json`; the run saves candidate IDs/scores and `records[].answer.usage.embedding` token/request counts instead.
+`evaluate --candidate-source <unreranked-run.json>` verifies index, labels, split, questions, prompt and settings (allowing only the reranking enable switch). It supports dense and hybrid sources, preserving exact candidate IDs/order/scores and saved component rankings while skipping all query embedding/search. Hybrid replay also checks lexical identity and fusion settings. Original B0 files without the new RRF setting remain compatible through its default. The new run records source-run identity/hash and reduced timing scope. Claude is called once per question with nonempty evidence; an empty list produces an insufficient answer locally. Every selected chunk is sent in the prompt: `records[].answer.evidence` stores the input set; `records[].answer.citations` holds the subset actually cited. Query vectors remain transient. Usage is recorded separately.
+
+### Phase 3 development comparison
+
+Phase 3 is complete: BM25 covers all 1,158 existing chunks without re-embedding. The same CLI commands select dense/hybrid modes through configuration; no new Typer commands or packages were added.
+
+| Five-question development metric | Dense-40 | B1 hybrid | B1-R, exact B1 pool |
+| --- | ---: | ---: | ---: |
+| Gold-span precision@5 | 0.16 | 0.20 | 0.28 |
+| Evidence-group recall@5 | 0.467 | 0.533 | 0.800 |
+| Complete coverage@5 | 2/5 | 2/5 | 4/5 |
+| Candidate group recall | 1.00 | 0.90 | 0.90 |
+
+All runs completed without execution failures. B1-R replayed B1's exact 40 candidates per question with **zero query embeddings/searches**; its run is `f0945144613e412f877f41ec22e8f065`. Reranking improves dev03/dev05 evidence coverage. Hybrid also excludes dev04's annotated SCAFFOLD passage at fused rank 43; the reranker cannot recover it. An assistant review against expected points stays 1.8/2 across all three modes: dev05 still omits two requested EMNIST factors despite retrieving their source. These small dev results do not establish a general answer-quality gain. Full provenance, per-question results, usage and observed limits are in [the hybrid report](reports/hybrid_development.md) and [structured summary](reports/hybrid_development_summary.json).
+
+Reproduce the completed development procedure below. The paired command uses the verified saved B1 run; use your new B1 run ID when making a new pair. Held-out comparisons remain part of the final evaluation phase.
+
+```bash
+HF_HOME=work/hf-cache uv run fedresearch evaluate \
+  --config configs/experiments/b0_dense_40.yaml --split dev --with-answers
+HF_HOME=work/hf-cache uv run fedresearch evaluate \
+  --config configs/experiments/b1_hybrid.yaml --split dev --with-answers
+HF_HOME=work/hf-cache uv run fedresearch evaluate \
+  --config configs/experiments/b1_hybrid_rerank.yaml --split dev --with-answers \
+  --candidate-source artifacts/runs/0bd7c449468a4a11b0f7fac4a9d72df5/run.json
+```
+
+Reports save `retrieval_protocol`, macro `summary`, per-question `candidate_metrics` and final evidence metrics. With answers, inspect `answer.trace.retrieval`: `rankings` holds dense/BM25 ranks and scores, `candidates` the fused pool, `deduplicated_candidates` the reranker inputs, and `reranking.results` the new ordering. Candidate metrics use the bounded deduplicated pool; final metrics use selected evidence, both under the same source-span rule. Replay timings exclude source retrieval, so do not compare them directly with fresh-run totals. The separate fresh-search B1-R run and earlier local top-20 diagnostic remain in the report.
+
+Default retrieval stays dense-20 with reranking off. B1/B1-R remain explicit configurations; Phase 4 adds section-aware retrieval while keeping the corpus, models, prompt and final budgets fixed.
 
 Generated artifacts are in ignored `data/raw`, `data/processed`, and `artifacts`. Indexes include `metadata.sqlite`, Chroma storage and `index.json` under `artifacts/indexes/<index-id>/`; `CURRENT.json` selects a completed version. Embeddings are cached in SQLite. Answer/evaluation traces are saved under `artifacts/runs/<run-id>/`.
 
 Twenty source-span benchmark annotations (5 dev / 15 test) are in `data/benchmarks`. They were prepared independently of retrieval and passed historical canonical validation. The new parse migration is complete: all 26 passages passed canonical validation and the new held-out freeze is valid. Independent human review is still pending; see [evaluation protocol](docs/evaluation.md), including the exact development score calculations. The label freeze hashes the entire `data/benchmarks/test.jsonl` reference-annotation file into `data/benchmarks/frozen.json`; test evaluation rejects a hash mismatch. It does not make files read-only or freeze model weights/settings. Development and held-out span-overlap diagnostics plus an exploratory assistant relevance review are reported; none is an independent human accuracy score.
 
-Later phases add hybrid/structure/graph modes and a bounded direct-function agent. Those interfaces are not yet implemented. MCP will not be implemented for this project.
+Later phases add structure/graph modes and a bounded direct-function agent. Those interfaces are not yet implemented. MCP will not be implemented for this project.
 
 ## 14. Implementation roadmap
 
@@ -439,7 +474,7 @@ The sequence is dependency-driven, without a mandatory day allocation. Detailed 
 | 0 — Foundation | Complete: package/contracts/lockfile and Claude/Atlas access verified; bulk indexing succeeds |
 | 1 — Preprocessing | Corrected 40-paper parse verified: 937 pages / 955 sections / 1,158 chunks, no diagnostic warnings; all 26 benchmark passages migrated/validated and test labels refrozen |
 | 2 — Baseline | Complete for the 40-paper reference: persistent index, cited B0/B0-R answers on 5 dev / 15 held-out questions, paired candidates, abstention checks and reported limitations; independent human grading remains optional follow-up |
-| 3 — Hybrid retrieval | Optional rerank-3 and paired dev/test comparisons verified; BM25/RRF and hybrid comparisons remain |
+| 3 — Hybrid retrieval | Complete: BM25/RRF, B1/B1-R and matched dense-40 configs; 55 offline tests, exact-pool dev comparison, usage and assistant answer review verified. Final held-out assessment remains Phase 7 |
 | 4 — Structure | Section chunks and bounded hierarchy expansion; B2/B2a comparisons isolate structural effects |
 | 5 — Graph | Small evidence-backed graph and bounded traversal; measure benefit before widening scope |
 | 6 — Agent | Bounded direct retrieval tools; separately assess evidence gathering and cited answers |
@@ -451,8 +486,8 @@ Preserve the baseline, structural retrieval, citations and honest comparisons. K
 ## 15. Definition of done
 
 - [x] Scope is agreed with the user; course rubric and video requirements are excluded.
-- [ ] The expanded 40-paper corpus is parsed/indexed with the pinned Voyage tokenizer and documented source versions. (Historical 20-paper / 657-chunk baseline verified.)
-- [ ] Baseline and enhanced retrieval can be selected through configuration.
+- [x] The expanded 40-paper corpus is parsed/indexed with the pinned Voyage tokenizer and documented source versions.
+- [x] Dense and hybrid retrieval can be selected through configuration; structure/graph modes follow later.
 - [x] Source evidence resolves to paper, section and PDF page. (Canonical/indexed-source and live citation-ID checks pass; semantic claim support still needs review.)
 - [ ] A bounded direct-function agent gathers evidence, produces supported citations and handles insufficient evidence.
 - [ ] Held-out comparisons use fixed inputs/settings and report precision@5, evidence coverage and answer relevance/grounding.

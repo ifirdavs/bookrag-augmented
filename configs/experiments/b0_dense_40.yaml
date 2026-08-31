@@ -1,0 +1,7 @@
+# Fields here are merged with configs/default.yaml; this file wins on conflicts.
+# Match B1's 40-candidate budget; preserve the original 20-candidate B0 configuration.
+retrieval:
+  mode: dense
+  candidate_limit: 40
+reranking:
+  enabled: false

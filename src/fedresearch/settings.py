@@ -54,8 +54,9 @@ class Generation(StrictModel):
 
 
 class Retrieval(StrictModel):
-    mode: Literal["dense"] = "dense"
+    mode: Literal["dense", "hybrid"] = "dense"
     candidate_limit: int = Field(default=20, ge=1, le=100)
+    rrf_constant: int = Field(default=60, ge=1)
     top_k: int = Field(default=5, ge=1, le=20)
     evidence_tokens: int = Field(default=4000, ge=1, le=32000)
     max_query_tokens: int = Field(default=1024, ge=1, le=8191)

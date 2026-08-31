@@ -9,13 +9,16 @@ from uuid import uuid4
 
 from fedresearch.evaluation.dataset import load_dataset, require_frozen, verify_question
 from fedresearch.evaluation.retrieval_metrics import score_retrieval
+from fedresearch.indexing.lexical_index import lexical_identity
 from fedresearch.llm.answering import answer_question
+from fedresearch.retrieval.evidence import pack_evidence
 from fedresearch.retrieval.service import RetrievalService
+from fedresearch.settings import Settings
 from fedresearch.util import atomic_json, digest, file_sha256
 
 
 def load_candidate_pools(service, path, split, questions, source_path, with_answers):
-    """Helper to paired evaluation: verify a compatible B0 run and load its exact candidate pools."""
+    """Helper to paired evaluation: verify a matching unreranked run and load its exact candidate pools."""
     source = json.loads(source_path.read_text())
     settings = service.settings.model_dump(mode="json")
     settings["reranking"]["enabled"] = False
@@ -23,12 +26,12 @@ def load_candidate_pools(service, path, split, questions, source_path, with_answ
         source["index_id"] != service.manifest["index_id"]
         or source["dataset_sha256"] != file_sha256(path)
         or source["split"] != split
-        or source["settings"] != settings
+        or Settings.model_validate(source["settings"]).model_dump(mode="json") != settings
         or source["failures"]
         or [r["question_id"] for r in source["records"]] != [q.question_id for q in questions]
     ):
         raise ValueError(
-            "Candidate source must be a complete B0 run with the same index, labels and settings"
+            "Candidate source must be a complete unreranked run with the same index, labels and settings"
         )
     prompt_hash = digest(files("fedresearch").joinpath("llm/prompts/answer.md").read_text())
     pools = {}
@@ -38,16 +41,33 @@ def load_candidate_pools(service, path, split, questions, source_path, with_answ
         if (
             record["status"] != "ok"
             or trace["index_id"] != source["index_id"]
-            or trace["mode"] != "dense"
+            or trace["mode"] != service.settings.retrieval.mode
             or trace["reranking"]["enabled"]
             or any(value is not None for value in trace["filters"].values())
             or (answer and answer["question"] != question.question)
             or (with_answers and (not answer or answer["trace"]["prompt_sha256"] != prompt_hash))
         ):
             raise ValueError(
-                "Candidate source must contain matching, unfiltered B0 questions and prompt"
+                "Candidate source must contain matching, unfiltered questions and prompt"
             )
-        pools[question.question_id] = [(r["chunk_id"], r["score"]) for r in trace["candidates"]]
+        if service.settings.retrieval.mode == "hybrid" and (
+            trace.get("lexical_index")
+            != lexical_identity(service.manifest["index_id"], service.manifest["chunk_fingerprint"])
+            or trace.get("fusion")
+            != {
+                "constant": service.settings.retrieval.rrf_constant,
+                "candidate_limit": service.settings.retrieval.candidate_limit,
+            }
+            or set(trace.get("rankings", {})) != {"dense", "bm25"}
+        ):
+            raise ValueError("Candidate source must use the same lexical index and fusion settings")
+        pools[question.question_id] = {
+            "candidate_pool": [(r["chunk_id"], r["score"]) for r in trace["candidates"]],
+            "candidate_rankings": {
+                name: [(r["chunk_id"], r["score"]) for r in rows]
+                for name, rows in trace.get("rankings", {}).items()
+            },
+        }
     return pools, {"run_id": source["run_id"], "sha256": file_sha256(source_path)}
 
 
@@ -58,7 +78,7 @@ def run_baseline(
     with_answers: bool = False,
     candidate_source: Path | None = None,
 ) -> dict:
-    """Evaluate verified questions, optionally replay B0 candidates, and save evidence, answers and scores."""
+    """Evaluate verified questions, optionally replay candidates, and save evidence, answers and scores."""
     if split == "test":
         require_frozen(path)
     questions = load_dataset(path, split)
@@ -75,7 +95,7 @@ def run_baseline(
     for question in questions:
         started = time.perf_counter()
         try:
-            replay = {"candidate_pool": pools[question.question_id]} if source else {}
+            replay = pools[question.question_id] if source else {}
             if with_answers:
                 answer = answer_question(service, question.question, **replay)
                 evidence = answer.evidence
@@ -93,6 +113,21 @@ def run_baseline(
                     service.settings.evaluation.k,
                     service.settings.evaluation.minimum_span_overlap,
                 )
+            )
+            candidates = service.last_trace["deduplicated_candidates"]
+            ranked = [(row["chunk_id"], row["score"]) for row in candidates]
+            candidate_evidence, _ = pack_evidence(
+                ranked,
+                service.store,
+                service.settings.retrieval.candidate_limit,
+                sum(service.store.chunk(identifier).token_count for identifier, _ in ranked),
+                service.settings.retrieval.mode,
+            )
+            result["candidate_metrics"] = score_retrieval(
+                question,
+                candidate_evidence,
+                service.settings.retrieval.candidate_limit,
+                service.settings.evaluation.minimum_span_overlap,
             )
             records.append(
                 {
@@ -124,9 +159,47 @@ def run_baseline(
         if source
         else "query embedding/search, ranking/packing and optional generation",
         "settings": service.settings.model_dump(mode="json"),
+        "retrieval_protocol": {
+            "mode": service.settings.retrieval.mode,
+            "embedding_model": service.settings.embedding.model,
+            "candidate_limit_per_search": service.settings.retrieval.candidate_limit,
+            "merged_candidate_limit": service.settings.retrieval.candidate_limit,
+            "rrf_constant": service.settings.retrieval.rrf_constant
+            if service.settings.retrieval.mode == "hybrid"
+            else None,
+            "reranking_model": service.settings.reranking.model
+            if service.settings.reranking.enabled
+            else None,
+            "top_k": service.settings.retrieval.top_k,
+            "evidence_tokens": service.settings.retrieval.evidence_tokens,
+            "candidate_metrics_scope": "after fusion/cap and source deduplication, before reranking/packing",
+        },
         "records": records,
+        "summary": summarize_retrieval(records),
         "failures": sum(r["status"] == "failed" for r in records),
         "note": "Span-overlap retrieval diagnostics; answer correctness, groundedness, claim support, and abstention require human scoring.",
     }
     atomic_json(service.settings.paths.runs / run_id / "run.json", result)
     return result
+
+
+def summarize_retrieval(records: list[dict]) -> dict:
+    """Helper to evaluation reports: macro-average successful answerable retrieval diagnostics."""
+    scored = [r for r in records if r["status"] == "ok" and r["precision_at_k"] is not None]
+    metrics = ("precision_at_k", "evidence_group_recall_at_k", "complete_coverage_at_k")
+    return {
+        "scored_answerable_questions": len(scored),
+        **{key: sum(r[key] for r in scored) / len(scored) if scored else None for key in metrics},
+        "candidate_group_recall": sum(
+            r["candidate_metrics"]["evidence_group_recall_at_k"] for r in scored
+        )
+        / len(scored)
+        if scored
+        else None,
+        "candidate_complete_coverage": sum(
+            r["candidate_metrics"]["complete_coverage_at_k"] for r in scored
+        )
+        / len(scored)
+        if scored
+        else None,
+    }

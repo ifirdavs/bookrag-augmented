@@ -22,6 +22,7 @@ from fedresearch.evaluation.dataset import (
 from fedresearch.evaluation.retrieval_metrics import score_retrieval
 from fedresearch.evaluation.runner import run_baseline
 from fedresearch.indexing.embeddings import EmbeddingCache
+from fedresearch.indexing.lexical_index import LexicalIndex
 from fedresearch.indexing.pipeline import build_index, preprocess
 from fedresearch.llm.answering import answer_question, validate_citations
 from fedresearch.llm.client import ProviderError, validate_vectors
@@ -33,6 +34,7 @@ from fedresearch.preprocessing.pdf_parser import (
     parse_pdf,
 )
 from fedresearch.preprocessing.sections import heading
+from fedresearch.retrieval.fusion import reciprocal_rank_fusion
 from fedresearch.retrieval.service import RetrievalService
 from fedresearch.schemas import Block, Claim, GeneratedAnswer, Paper
 from fedresearch.settings import Preprocessing, Settings
@@ -259,7 +261,7 @@ def test_index_reload_filters_budgets_and_empty_scope(corpus):
         assert service.provider.calls == calls
         with pytest.raises(ValueError, match="Unknown paper"):
             service.retrieve("updates", paper_ids=["missing"])
-        with pytest.raises(ValueError, match="Only dense"):
+        with pytest.raises(ValueError, match="Only dense and hybrid"):
             service.retrieve("updates", mode="graph")
         with pytest.raises(ValueError, match="top_k"):
             service.retrieve("updates", top_k=0)
@@ -279,6 +281,62 @@ def test_changed_model_and_parser_refuse_stale_index(corpus):
         RetrievalService(corpus, TestEmbedder())
     with pytest.raises(ValueError, match="stale parser"):
         build_index(corpus, TestEmbedder())
+
+
+def test_hybrid_config_filters_fusion_and_dense_index_reuse(corpus):
+    """Verify hybrid uses existing vectors, shared filters, capped fusion and original source evidence."""
+    result = build_index(corpus, TestEmbedder())
+    sidecar = corpus.paths.indexes / result["index_id"] / "bm25.sqlite"
+    sidecar.unlink()
+    provider = TestEmbedder()
+    reused = build_index(corpus, provider)
+    assert reused["reused"] and reused["index_id"] == result["index_id"]
+    assert provider.calls == 0 and sidecar.exists()
+    corpus.retrieval.mode = "hybrid"
+    corpus.retrieval.candidate_limit = 6
+    with RetrievalService(corpus, TestEmbedder()) as service:
+        evidence = service.retrieve("control updates", year_from=2020, method="control")
+        trace = service.last_trace
+        assert trace["mode"] == "hybrid" and trace["ranking_score"] == "rrf"
+        assert set(trace["rankings"]) == {"dense", "bm25"}
+        expected = reciprocal_rank_fusion(
+            [
+                [(row["chunk_id"], row["score"]) for row in rows]
+                for rows in trace["rankings"].values()
+            ],
+            6,
+        )
+        assert trace["candidates"] == [{"chunk_id": i, "score": s} for i, s in expected]
+        assert evidence and all(e.paper_id == "beta" and e.origin == "hybrid" for e in evidence)
+        assert all(service.store.block(s.block_id) for e in evidence for s in e.spans)
+        assert len(evidence) <= corpus.retrieval.top_k
+        assert sum(e.token_count for e in evidence) <= corpus.retrieval.evidence_tokens
+        assert service.retrieve("proximal", paper_ids=["alpha"], section_hint="Introduction")
+        calls = service.provider.calls
+        assert service.retrieve("control", paper_ids=[]) == []
+        assert service.retrieve("control", section_hint="nonexistent") == []
+        assert service.provider.calls == calls
+    sidecar.unlink()
+    with RetrievalService(corpus, TestEmbedder()) as service:
+        with pytest.raises(ValueError, match="BM25 index is missing"):
+            service.retrieve("control")
+        assert service.provider.calls == 0
+
+
+def test_hybrid_empty_channel_still_returns_the_other_channel(corpus, monkeypatch):
+    """Verify an empty dense or lexical result list can still produce source-backed hybrid evidence."""
+    build_index(corpus, TestEmbedder())
+    corpus.retrieval.mode = "hybrid"
+    with RetrievalService(corpus, TestEmbedder()) as service:
+        monkeypatch.setattr(service.vectors, "query", lambda *args: [])
+        assert service.retrieve("proximal")
+        assert service.last_trace["rankings"]["dense"] == []
+        assert service.last_trace["rankings"]["bm25"]
+    monkeypatch.setattr(LexicalIndex, "query", lambda *args: [])
+    with RetrievalService(corpus, TestEmbedder()) as service:
+        assert service.retrieve("proximal")
+        assert service.last_trace["rankings"]["bm25"] == []
+        assert service.last_trace["rankings"]["dense"]
 
 
 def test_embedding_cache_survives_partial_rebuild(corpus):
@@ -389,6 +447,9 @@ def baseline_run(corpus, monkeypatch):
 def test_evaluation_replays_exact_candidates_without_embedding_or_search(corpus, baseline_run):
     """Verify paired answers reuse exact dense candidates and omit query embedding/search calls."""
     path, source, baseline = baseline_run
+    # Historical B0 settings predate hybrid's RRF field; its default must preserve replay.
+    baseline["settings"]["retrieval"].pop("rrf_constant")
+    atomic_json(source, baseline)
     corpus.reranking.enabled = True
     reranker = Mock()
 
@@ -416,6 +477,52 @@ def test_evaluation_replays_exact_candidates_without_embedding_or_search(corpus,
     assert answer["usage"]["embedding"]["requests"] == 0
     assert answer["usage"]["generation"]["output_tokens"] == 10
     reranker.rerank.assert_called_once()
+
+
+def test_hybrid_evaluation_replays_fused_pool_and_component_rankings(
+    corpus, baseline_run, monkeypatch
+):
+    """Verify B1-R reuses B1's exact fused pool, component ranks and candidate metrics without searching."""
+    path, _, _ = baseline_run
+    question = json.loads(path.read_text())
+    question["question"] = "Which quantum processor supports proximal updates?"
+    write_jsonl(path, [question])
+    corpus.retrieval.mode = "hybrid"
+    with RetrievalService(corpus, TestEmbedder()) as service:
+        baseline = run_baseline(service, path, "dev", with_answers=True)
+    assert baseline["failures"] == 0
+    source = corpus.paths.runs / baseline["run_id"] / "run.json"
+    original = baseline["records"][0]["answer"]["trace"]["retrieval"]
+    assert original["rankings"]["dense"] and original["rankings"]["bm25"]
+    reranker = Mock()
+    reranker.rerank.side_effect = lambda query, texts: (
+        [(i, float(i)) for i in reversed(range(len(texts)))],
+        {"enabled": True},
+    )
+    corpus.reranking.enabled = True
+    monkeypatch.setattr(LexicalIndex, "query", Mock(side_effect=AssertionError("No BM25 search")))
+    with RetrievalService(corpus, TestEmbedder(), reranker) as service:
+        service.provider.embed = Mock(side_effect=AssertionError("No query embedding"))
+        service.vectors.query = Mock(side_effect=AssertionError("No dense search"))
+        result = run_baseline(service, path, "dev", with_answers=True, candidate_source=source)
+        assert result["failures"] == 0
+        assert (
+            result["records"][0]["candidate_metrics"] == baseline["records"][0]["candidate_metrics"]
+        )
+        trace = result["records"][0]["answer"]["trace"]["retrieval"]
+        assert trace["candidates"] == original["candidates"]
+        assert trace["rankings"] == original["rankings"]
+        assert trace["ranking_score"] == "reranker_relevance"
+        assert trace["embedding_usage"]["requests"] == 0
+        service.provider.embed.assert_not_called()
+        service.vectors.query.assert_not_called()
+    assert result["summary"]["scored_answerable_questions"] == 0
+    original["lexical_index"]["sqlite_version"] = "different"
+    atomic_json(source, baseline)
+    with RetrievalService(corpus, TestEmbedder(), reranker) as service:
+        with pytest.raises(ValueError, match="same lexical index"):
+            run_baseline(service, path, "dev", candidate_source=source)
+        assert service.provider.calls == 0
 
 
 @pytest.mark.parametrize(
@@ -499,6 +606,14 @@ def test_benchmark_source_spans_and_metric_denominators(corpus):
         metrics = score_retrieval(question, evidence, k=5)
         assert metrics["precision_at_k"] == 0.2
         assert metrics["evidence_group_recall_at_k"] == 1
+        path = corpus.paths.manifest.parent / "benchmarks/dev.jsonl"
+        write_jsonl(path, [question.model_dump(mode="json")])
+        corpus.retrieval.mode = "hybrid"
+        result = run_baseline(service, path, "dev")
+        assert result["failures"] == 0
+        assert result["summary"]["scored_answerable_questions"] == 1
+        assert result["summary"]["candidate_group_recall"] == 1
+        assert result["records"][0]["candidate_metrics"]["covered_groups"] == ["mechanism"]
         bad = question.model_copy(deep=True)
         bad.evidence_groups[0].alternatives[0].quote = "wrong"
         with pytest.raises(ValueError, match="quote/span"):

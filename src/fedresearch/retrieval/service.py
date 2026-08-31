@@ -4,10 +4,12 @@ import math
 import time
 
 from fedresearch.corpus.manifest import load_manifest, matching_papers
+from fedresearch.indexing.lexical_index import LexicalIndex, lexical_identity
 from fedresearch.indexing.pipeline import current_index, source_identity
 from fedresearch.indexing.vector_index import VectorIndex
 from fedresearch.llm.client import Embedder, VoyageEmbedder
 from fedresearch.retrieval.evidence import deduplicate_candidates, pack_evidence
+from fedresearch.retrieval.fusion import reciprocal_rank_fusion
 from fedresearch.retrieval.reranking import VoyageReranker
 from fedresearch.settings import Settings
 from fedresearch.storage.metadata_store import MetadataStore
@@ -24,6 +26,8 @@ class RetrievalService:
         """Helper to retrieve: open a compatible index and configure its embedding/reranking providers."""
         self.settings = settings
         folder, self.manifest = current_index(settings)
+        self.folder = folder
+        self.lexical = None
         provider = provider or VoyageEmbedder(settings)
         if provider.identity != self.manifest["embedding"]:
             raise ValueError(
@@ -47,6 +51,8 @@ class RetrievalService:
     def close(self):
         """Helper to retrieval cleanup: close the source metadata store."""
         self.store.close()
+        if self.lexical is not None:
+            self.lexical.close()
 
     def __enter__(self):
         """Helper to retrieval context management: return the open service."""
@@ -61,19 +67,21 @@ class RetrievalService:
         query: str,
         paper_ids: list[str] | None = None,
         section_hint: str | None = None,
-        mode: str = "dense",
+        mode: str | None = None,
         top_k: int | None = None,
         year_from: int | None = None,
         year_to: int | None = None,
         method: str | None = None,
         *,
         candidate_pool: list[tuple[str, float]] | None = None,
+        candidate_rankings: dict | None = None,
     ):
-        """Search or replay dense candidates, optionally rerank and pack source evidence within budgets."""
+        """Search dense/hybrid candidates or replay a pool, then optionally rerank and pack evidence."""
         started = time.perf_counter()
-        if mode != "dense":
-            raise ValueError("Only dense retrieval is implemented in Phase 2")
         config = self.settings.retrieval
+        mode = config.mode if mode is None else mode
+        if mode not in {"dense", "hybrid"}:
+            raise ValueError("Only dense and hybrid retrieval are implemented")
         top_k = config.top_k if top_k is None else top_k
         if not 1 <= top_k <= min(20, config.candidate_limit):
             raise ValueError("top_k must be within the configured candidate limit and 1–20")
@@ -107,6 +115,7 @@ class RetrievalService:
             ]
         before = dict(self.provider.usage)
         ranked = []
+        rankings = candidate_rankings or {}
         if candidate_pool is not None:
             ranked = list(candidate_pool)
             if (
@@ -122,10 +131,26 @@ class RetrievalService:
                     "Saved candidates violate the candidate limit, scores or source filters"
                 )
         elif allowed and chunk_ids != []:
+            if mode == "hybrid":
+                self.lexical = self.lexical or LexicalIndex(
+                    self.folder / "bm25.sqlite",
+                    self.manifest["index_id"],
+                    self.manifest["chunk_fingerprint"],
+                    self.manifest["chunks"],
+                )
             vector = self.provider.embed([query], input_type="query")[0]
             ranked = self.vectors.query(vector, config.candidate_limit, allowed, chunk_ids)
+            rankings = {"dense": ranked}
+            if mode == "hybrid":
+                rankings["bm25"] = self.lexical.query(
+                    query, config.candidate_limit, allowed, chunk_ids
+                )
+                ranked = reciprocal_rank_fusion(
+                    list(rankings.values()), config.candidate_limit, config.rrf_constant
+                )
         candidates = [{"chunk_id": identifier, "score": score} for identifier, score in ranked]
         ranked, duplicates = deduplicate_candidates(ranked, self.store)
+        deduplicated = [{"chunk_id": identifier, "score": score} for identifier, score in ranked]
         reranking = {"enabled": False}
         if self.settings.reranking.enabled:
             self.reranker = self.reranker or VoyageReranker(self.settings)
@@ -143,7 +168,7 @@ class RetrievalService:
                 for rank, (index, score) in enumerate(rows)
             ]
             ranked = [(ranked[index][0], score) for index, score in rows]
-        evidence, packing = pack_evidence(ranked, self.store, top_k, config.evidence_tokens)
+        evidence, packing = pack_evidence(ranked, self.store, top_k, config.evidence_tokens, mode)
         packing["skipped"] = duplicates + packing["skipped"]
         usage = {
             key: self.provider.usage.get(key, 0) - before.get(key, 0)
@@ -164,9 +189,27 @@ class RetrievalService:
                 "method": method,
             },
             "candidates": candidates,
-            "candidate_source": "saved_pool" if candidate_pool is not None else "dense_search",
+            "deduplicated_candidates": deduplicated,
+            "rankings": {
+                name: [
+                    {"chunk_id": identifier, "rank": rank, "score": score}
+                    for rank, (identifier, score) in enumerate(rows, start=1)
+                ]
+                for name, rows in rankings.items()
+            },
+            "fusion": {"constant": config.rrf_constant, "candidate_limit": config.candidate_limit}
+            if mode == "hybrid"
+            else None,
+            "lexical_index": lexical_identity(
+                self.manifest["index_id"], self.manifest["chunk_fingerprint"]
+            )
+            if mode == "hybrid"
+            else None,
+            "candidate_source": "saved_pool" if candidate_pool is not None else f"{mode}_search",
             "reranking": reranking,
-            "ranking_score": "reranker_relevance" if reranking["enabled"] else "cosine_similarity",
+            "ranking_score": "reranker_relevance"
+            if reranking["enabled"]
+            else ("rrf" if mode == "hybrid" else "cosine_similarity"),
             "embedding_usage": usage,
             "seconds": time.perf_counter() - started,
             **packing,

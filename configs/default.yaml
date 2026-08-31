@@ -26,6 +26,7 @@ generation:
 retrieval:
   mode: dense
   candidate_limit: 20
+  rrf_constant: 60
   top_k: 5
   evidence_tokens: 4000
   max_query_tokens: 1024

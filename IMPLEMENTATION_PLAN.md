@@ -1,6 +1,6 @@
 # FedResearch implementation plan
 
-Status: **Phases 0–2 implemented; 40-paper rebuild and B0/B0-R evaluation complete** (2026-10-18). All 40 PDFs / 937 pages pass checksums; parser v4 produced 955 sections and 1,158 chunks with no serious/structural warnings. All 26 original benchmark passages were verified/migrated with only parse/block IDs changed. The 40 answer executions (20 questions per mode) completed without errors under fixed corpus/models/prompt/budgets and paired candidates. Held-out P@5 changed 0.108→0.215, group recall 0.410→0.808 and complete coverage 5/13→10/13; both modes abstained on both negatives. Assistant relevance/source review and actual limitations are reported, without independent human accuracy claims. Next: Phase 3 BM25/RRF, then Phase 4 section-aware retrieval. See [phase status](reports/phase_status.md) and [results](reports/evaluation.md).
+Status: **Phases 0–3 implemented and development gates verified** (2026-10-22). The unchanged 40-paper / 1,158-chunk dense index has a compatible SQLite FTS5 BM25 sidecar. Dense-40/B1/B1-R dev P@5 is 0.16/0.20/0.28, group recall 0.467/0.533/0.800 and complete coverage 2/5, 2/5, 4/5. The B1/B1-R pair shares every candidate exactly and replay makes zero query embeddings/searches. Targeted assistant answer review stays 1.8/2, with genuine retrieval/answer limitations documented. All 55 offline tests passed; code is unchanged during result verification. Original baseline runs, prompt and frozen labels remain unchanged. Next: Phase 4 section-aware retrieval. See [phase status](reports/phase_status.md), [baseline results](reports/evaluation.md) and [hybrid results](reports/hybrid_development.md).
 
 Work through the phases sequentially. Each phase produces a reviewable result, updates the README, and passes its acceptance gate before the next phase begins. There is no mandatory deadline or day allocation; keep the implementation focused on grounded answers and measured retrieval improvements.
 
@@ -67,6 +67,8 @@ Tasks:
 ## Phase 3 — Hybrid retrieval and optional reranking
 
 **Purpose:** Test whether lexical matching improves evidence discovery, then independently test whether reranking improves evidence selection.
+
+Complete (2026-10-22): SQLite FTS5 BM25, RRF and shared reranking use the same fixed chunks and existing CLI commands. Dense-40 (`f4be2b88c53e42998e1fc7c88c605eaf`), B1 (`0bd7c449468a4a11b0f7fac4a9d72df5`) and exact-pool B1-R (`f0945144613e412f877f41ec22e8f065`) are verified, with five questions each and zero execution failures. P@5 is 0.16/0.20/0.28; group recall 0.467/0.533/0.800; complete coverage 2/5, 2/5, 4/5. Candidate recall is 1.00/0.90/0.90. Targeted assistant relevance stays 1.8/2, so retain the original defaults and report retrieval gains separately from answer quality. Usage, timing scope, regressions and source checks are recorded. The additional fresh-search reranked run remains separate. Original B0-20 is preserved; no new Typer commands were added.
 
 Tasks:
 
@@ -188,18 +190,18 @@ Tasks:
 | Decision | Working default | Resolve during |
 | --- | --- | --- |
 | Project name | FedResearch | Phase 0 |
-| Corpus | 40 papers: existing 20 plus 20 selected additions | Agreed; acquisition/reprocessing in progress |
+| Corpus | 40 papers: existing 20 plus 20 selected additions | Acquired, parsed and indexed |
 | Generation and embeddings | Claude Haiku 5.5; Voyage 4 Large, 2048 dimensions | Index, cited development answers and baseline diagnostics verified live |
 | PDF parser | PyMuPDF, with layout quality gate | Phase 1 |
-| Retrieval storage | Chroma, SQLite, BM25, NetworkX | Phase 0 compatibility check |
+| Retrieval storage | Chroma; SQLite sources and FTS5 BM25; planned NetworkX | Dense/lexical persistence verified; graph remains Phase 5 |
 | Benchmark size | 20 questions, 5 dev / 15 test | Phase 2 |
 | First user interface | CLI | Phase 0 |
 | Agent integration | Direct function calls; MCP outside implementation scope | Confirmed |
-| Reranking | Atlas rerank-3 implemented; disabled in core ladder; B0-R/B1-R/B3-R pairs | Access and initial paired B0-R dev replay verified; hybrid/graph pairs remain |
+| Reranking | Atlas rerank-3 implemented; disabled in core ladder; B0-R/B1-R/B3-R pairs | B0-R and exact-pool B1-R comparisons verified; future graph pairs remain |
 | Optional work | B2a/B2-R before UI polish; table-result records later | After core gates |
 
 ## How we will work phase by phase
 
 For each implementation session: keep the code small and direct, implement only the current phase, reuse library features and shared logic, verify consequential behavior, inspect outputs, and update documentation. Do not start all folders as placeholder code. Add modules when needed and keep shared contracts stable.
 
-The next implementation batch is Phase 3 hybrid retrieval followed by Phase 4 structure-aware retrieval. Preserve the saved B0 baseline and current corpus/models/prompt/budgets, compare on development questions, and leave the frozen held-out set for final evaluation. Human semantic/annotation review remains recommended; it does not require delaying the next engineering phase.
+Phase 3 code, controlled dev comparisons and targeted assistant review are complete. Next is Phase 4 structure-aware retrieval. Preserve the B0/B1 references and current corpus/models/prompt/final budgets; keep core structural comparisons without reranking and evaluate optional reranking separately. Leave new held-out execution for final evaluation. Independent human review remains optional follow-up, not a claim of the assistant review.

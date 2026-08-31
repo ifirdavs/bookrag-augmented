@@ -32,7 +32,11 @@ def deduplicate_candidates(
 
 
 def pack_evidence(
-    ranked: list[tuple[str, float]], store: MetadataStore, top_k: int, token_budget: int
+    ranked: list[tuple[str, float]],
+    store: MetadataStore,
+    top_k: int,
+    token_budget: int,
+    origin: str = "dense",
 ) -> tuple[list[Evidence], dict]:
     """Pack deduplicated candidates into citation-ready evidence within the item and token budgets."""
     selected, skipped, tokens = [], [], 0
@@ -67,6 +71,7 @@ def pack_evidence(
                 text=chunk.text,
                 token_count=chunk.token_count,
                 score=score,
+                origin=origin,
             )
         )
         tokens += chunk.token_count

@@ -1,5 +1,7 @@
 # Baseline evaluation and index builds
 
+Phase 3 is complete (2026-10-22). The separate [hybrid report](hybrid_development.md) records dense-40/B1/exact-pool B1-R dev comparisons: P@5 0.16/0.20/0.28, group recall 0.467/0.533/0.800 and complete coverage 2/5, 2/5, 4/5. Targeted assistant relevance remains 1.8/2; retrieval gains are not an answer-accuracy claim. The B0/B0-R results below remain unchanged.
+
 ## Current 40-paper index, 2026-10-17
 
 The 40-paper rebuild and all four B0/B0-R development/test runs are complete: **40 answer executions, zero execution failures**. Every paired run uses exactly the same original dense candidate IDs/order/scores, index, frozen question labels, prompt and settings except the reranking enable flag.
@@ -171,7 +173,7 @@ Development relevance averages **1.80 / 2 in both modes** (four of five cover th
 
 Across the four reported evaluation runs, successful recorded usage is **20 query embeddings / 355 tokens**, **20 reranking calls / 243,116 tokens**, and **40 Claude responses / 249,125 input + 23,204 output tokens**. The 40-paper index build separately used 683,346 embedding tokens over 37 calls. These counts exclude historical runs and account-wide usage; costs remain null because deployment pricing is not configured. No invoice/free-credit claim is made.
 
-The requested corpus expansion, corrected parsing, indexing and controlled B0/B0-R evaluation are complete. Keep these run artifacts and frozen labels as the baseline. The next implementation phases are BM25/RRF and section-aware chunking with bounded hierarchy expansion, with development-only tuning and controlled comparison against the preserved baseline. Corpus/model/prompt identities and both candidate pools were held fixed during the current comparison; the benchmark is small and the assistant review is exploratory.
+The corpus expansion, corrected parsing, indexing and controlled B0/B0-R evaluation are complete. Keep these run artifacts and frozen labels as the baseline. BM25/RRF and its separate controlled dev comparisons are complete; next is section-aware chunking with bounded hierarchy expansion. Corpus/model/prompt identities and both candidate pools were held fixed during the baseline comparison; the benchmark is small and the assistant review is exploratory.
 
 ## Historical 20-paper development results
 
@@ -243,4 +245,4 @@ Observed limitations:
 
 The default configuration has changed since these historical measurements. The expanded parse, verified annotation migration, new freeze, new index and B0 development answers are complete. Use the paired replay command in the current 40-paper section above for the next comparison. The B0-R config enables reranking for normal use. For a strict paired comparison, replay the saved B0 `trace.retrieval.candidates` through `deduplicate_candidates`, `VoyageReranker.rerank` and `pack_evidence` under the same budgets; a fresh retrieval call is not an exact replay.
 
-The new 40-paper Voyage-tokenizer baseline is established. Subsequent work adds BM25/RRF and section-aware retrieval against this preserved reference. Keep corpus, models, prompt, development/test split and final evidence budgets fixed within each comparison. Leave held-out execution until the methods/settings are fixed. Review semantic support and sample answers before making final quality claims.
+The 40-paper Voyage-tokenizer baseline is established. BM25/RRF and its controlled dev answer comparisons/targeted assistant review are complete; section-aware retrieval is next. Keep corpus, models, prompt, development/test split and final evidence budgets fixed within each comparison. Leave further held-out execution until methods/settings are fixed. Review semantic support and sample answers before making final quality claims.

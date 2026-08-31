@@ -45,6 +45,8 @@ def doctor(config: Config = CONFIG, live: bool = False):
         "generation_model": settings.generation.model,
         "embedding_model": settings.embedding.model,
         "embedding_dimensions": settings.embedding.dimensions,
+        "retrieval_mode": settings.retrieval.mode,
+        "candidate_limit": settings.retrieval.candidate_limit,
         "tokenizer": settings.preprocessing.tokenizer,
         "tokenizer_revision": settings.preprocessing.tokenizer_revision,
         "generation_provider": "anthropic",
@@ -108,7 +110,7 @@ def preprocess_command(
 
 @app.command("index")
 def index_command(config: Config = CONFIG):
-    """Build or reuse the dense index from the processed corpus."""
+    """Build BM25 and build or reuse dense vectors from the processed corpus."""
     emit(build_index(load_settings(config)))
 
 
@@ -138,7 +140,7 @@ def ask_command(
     question: str,
     config: Config = CONFIG,
     paper_id: Annotated[list[str] | None, typer.Option()] = None,
-    mode: str = "dense",
+    mode: str | None = None,
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ):
     """Answer from retrieved evidence, print citations and save the answer trace."""
@@ -207,10 +209,10 @@ def evaluate_command(
     split: str = "dev",
     with_answers: bool = False,
     candidate_source: Annotated[
-        Path | None, typer.Option(help="Replay a saved B0 run.json for a paired comparison.")
+        Path | None, typer.Option(help="Replay a saved unreranked run.json for a paired comparison.")
     ] = None,
 ):
-    """Score benchmark retrieval and optional answers; optionally replay a saved dense candidate pool."""
+    """Score benchmark retrieval and optional answers; optionally replay a saved candidate pool."""
     if split not in {"dev", "test"}:
         raise ValueError("split must be dev or test")
     settings = load_settings(config)
@@ -227,6 +229,7 @@ def evaluate_command(
             "run_id": result["run_id"],
             "questions": len(result["records"]),
             "failures": result["failures"],
+            "summary": result["summary"],
             "records": [{k: r[k] for k in ("question_id", "status")} for r in result["records"]],
         }
     )

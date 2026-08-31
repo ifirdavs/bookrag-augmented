@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fedresearch.corpus.manifest import load_manifest, matching_papers, pdf_path, validate_corpus
 from fedresearch.indexing.embeddings import EmbeddingCache
+from fedresearch.indexing.lexical_index import build_lexical_index
 from fedresearch.indexing.vector_index import VectorIndex
 from fedresearch.llm.client import Embedder, VoyageEmbedder
 from fedresearch.preprocessing.pdf_parser import parse_id_for, parse_pdf
@@ -98,7 +99,7 @@ def canonical_store(settings: Settings) -> MetadataStore:
 
 
 def build_index(settings: Settings, provider: Embedder | None = None) -> dict:
-    """Cache chunk embeddings and activate a complete Chroma index with SQLite source lookup."""
+    """Build BM25, cache chunk embeddings and activate Chroma with SQLite source lookup."""
     started = time.perf_counter()
     documents = load_processed(settings)
     chunks = sorted([chunk for doc in documents for chunk in doc.chunks], key=lambda c: c.chunk_id)
@@ -125,13 +126,20 @@ def build_index(settings: Settings, provider: Embedder | None = None) -> dict:
                 raise ValueError(
                     "Existing completed index is inconsistent; inspect it before rebuilding"
                 )
+        lexical = build_lexical_index(
+            folder / "bm25.sqlite", index_id, identity["chunk_fingerprint"], chunks
+        )
         atomic_json(settings.paths.indexes / "CURRENT.json", {"index_id": index_id})
         return {
             **saved,
             "reused": True,
+            "lexical": lexical,
             "current_build_usage": {},
             "current_build_seconds": time.perf_counter() - started,
         }
+    lexical = build_lexical_index(
+        folder / "bm25.sqlite", index_id, identity["chunk_fingerprint"], chunks
+    )
     cache = EmbeddingCache(settings.paths.indexes / "embedding_cache.sqlite")
     try:
         vectors, hits = cache.embed_chunks(chunks, provider, settings.embedding.batch_size)
@@ -153,6 +161,7 @@ def build_index(settings: Settings, provider: Embedder | None = None) -> dict:
         "papers": len(documents),
         "chunks": len(chunks),
         "cache_hits": hits,
+        "lexical": lexical,
         "usage": provider.usage,
         "seconds": time.perf_counter() - started,
     }

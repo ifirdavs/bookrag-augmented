@@ -1,0 +1,7 @@
+# Fields here are merged with configs/default.yaml; this file wins on conflicts.
+retrieval:
+  mode: hybrid
+  candidate_limit: 40
+  rrf_constant: 60
+reranking:
+  enabled: false
