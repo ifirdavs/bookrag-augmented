@@ -35,6 +35,11 @@ def validate_document(doc: ParsedDocument) -> None:
             pages.add(block.page)
         if sorted(pages) != chunk.pages or chunk.parse_id != doc.parse_id:
             raise ValueError("Chunk provenance mismatch")
+        if chunk.policy == "section" and (
+            chunk.section_ids != [chunk.section_id]
+            or any(blocks[span.block_id].section_id != chunk.section_id for span in chunk.spans)
+        ):
+            raise ValueError("Section chunk crosses a section boundary")
 
 
 def require_reviewed(doc: ParsedDocument) -> None:

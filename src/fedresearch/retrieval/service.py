@@ -10,6 +10,7 @@ from fedresearch.indexing.vector_index import VectorIndex
 from fedresearch.llm.client import Embedder, VoyageEmbedder
 from fedresearch.retrieval.evidence import deduplicate_candidates, pack_evidence
 from fedresearch.retrieval.fusion import reciprocal_rank_fusion
+from fedresearch.retrieval.hierarchy import expand_hierarchy
 from fedresearch.retrieval.reranking import VoyageReranker
 from fedresearch.settings import Settings
 from fedresearch.storage.metadata_store import MetadataStore
@@ -75,13 +76,23 @@ class RetrievalService:
         *,
         candidate_pool: list[tuple[str, float]] | None = None,
         candidate_rankings: dict | None = None,
+        seed_pool: list[tuple[str, float]] | None = None,
+        candidate_expansion: dict | None = None,
     ):
-        """Search dense/hybrid candidates or replay a pool, then optionally rerank and pack evidence."""
+        """Retrieve dense/hybrid/structural evidence or replay pools, then optionally rerank and pack."""
         started = time.perf_counter()
         config = self.settings.retrieval
         mode = config.mode if mode is None else mode
-        if mode not in {"dense", "hybrid"}:
-            raise ValueError("Only dense and hybrid retrieval are implemented")
+        if mode not in {"dense", "hybrid", "structure"}:
+            raise ValueError("Supported retrieval modes: dense, hybrid, structure")
+        if mode == "structure" and self.settings.indexing.chunk_policy != "section":
+            raise ValueError("Structure retrieval requires section chunks")
+        if seed_pool is not None and (candidate_pool is not None or mode != "structure"):
+            raise ValueError(
+                "Seed replay requires structure mode and cannot replay a final pool too"
+            )
+        if mode == "structure" and candidate_pool is not None and candidate_expansion is None:
+            raise ValueError("Final structural replay requires the saved expansion trace")
         top_k = config.top_k if top_k is None else top_k
         if not 1 <= top_k <= min(20, config.candidate_limit):
             raise ValueError("top_k must be within the configured candidate limit and 1–20")
@@ -116,8 +127,21 @@ class RetrievalService:
         before = dict(self.provider.usage)
         ranked = []
         rankings = candidate_rankings or {}
-        if candidate_pool is not None:
-            ranked = list(candidate_pool)
+        replay_pool = candidate_pool if candidate_pool is not None else seed_pool
+        if (
+            mode in {"hybrid", "structure"}
+            and candidate_pool is None
+            and allowed
+            and chunk_ids != []
+        ):
+            self.lexical = self.lexical or LexicalIndex(
+                self.folder / "bm25.sqlite",
+                self.manifest["index_id"],
+                self.manifest["chunk_fingerprint"],
+                self.manifest["chunks"],
+            )
+        if replay_pool is not None:
+            ranked = list(replay_pool)
             if (
                 len(ranked) > config.candidate_limit
                 or len({identifier for identifier, _ in ranked}) != len(ranked)
@@ -131,23 +155,21 @@ class RetrievalService:
                     "Saved candidates violate the candidate limit, scores or source filters"
                 )
         elif allowed and chunk_ids != []:
-            if mode == "hybrid":
-                self.lexical = self.lexical or LexicalIndex(
-                    self.folder / "bm25.sqlite",
-                    self.manifest["index_id"],
-                    self.manifest["chunk_fingerprint"],
-                    self.manifest["chunks"],
-                )
             vector = self.provider.embed([query], input_type="query")[0]
             ranked = self.vectors.query(vector, config.candidate_limit, allowed, chunk_ids)
             rankings = {"dense": ranked}
-            if mode == "hybrid":
+            if mode in {"hybrid", "structure"}:
                 rankings["bm25"] = self.lexical.query(
                     query, config.candidate_limit, allowed, chunk_ids
                 )
                 ranked = reciprocal_rank_fusion(
                     list(rankings.values()), config.candidate_limit, config.rrf_constant
                 )
+        expansion = candidate_expansion or {"enabled": False}
+        if mode == "structure" and candidate_pool is None:
+            ranked, expansion = expand_hierarchy(
+                query, ranked, self.store, self.lexical, config, chunk_ids
+            )
         candidates = [{"chunk_id": identifier, "score": score} for identifier, score in ranked]
         ranked, duplicates = deduplicate_candidates(ranked, self.store)
         deduplicated = [{"chunk_id": identifier, "score": score} for identifier, score in ranked]
@@ -197,19 +219,26 @@ class RetrievalService:
                 ]
                 for name, rows in rankings.items()
             },
+            "structural_expansion": expansion,
             "fusion": {"constant": config.rrf_constant, "candidate_limit": config.candidate_limit}
-            if mode == "hybrid"
+            if mode in {"hybrid", "structure"}
             else None,
             "lexical_index": lexical_identity(
                 self.manifest["index_id"], self.manifest["chunk_fingerprint"]
             )
-            if mode == "hybrid"
+            if mode in {"hybrid", "structure"}
             else None,
-            "candidate_source": "saved_pool" if candidate_pool is not None else f"{mode}_search",
+            "candidate_source": "saved_pool"
+            if candidate_pool is not None
+            else ("saved_seeds" if seed_pool is not None else f"{mode}_search"),
             "reranking": reranking,
             "ranking_score": "reranker_relevance"
             if reranking["enabled"]
-            else ("rrf" if mode == "hybrid" else "cosine_similarity"),
+            else (
+                "rrf_anchor_score"
+                if mode == "structure"
+                else ("rrf" if mode == "hybrid" else "cosine_similarity")
+            ),
             "embedding_usage": usage,
             "seconds": time.perf_counter() - started,
             **packing,

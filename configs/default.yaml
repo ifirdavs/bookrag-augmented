@@ -18,6 +18,8 @@ embedding:
   batch_size: 32
   timeout_seconds: 60
   max_retries: 2
+indexing:
+  chunk_policy: fixed
 generation:
   model: claude-haiku-5-5
   max_output_tokens: 2500

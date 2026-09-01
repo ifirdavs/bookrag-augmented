@@ -87,7 +87,7 @@ class Chunk(StrictModel):
     paper_id: str
     document_version: str
     parse_id: str
-    policy: Literal["fixed"] = "fixed"
+    policy: Literal["fixed", "section"] = "fixed"
     text: str
     section_id: str
     section_path: list[str]
@@ -122,7 +122,7 @@ class Evidence(StrictModel):
     spans: list[SourceSpan]
     text: str
     token_count: int
-    origin: Literal["dense", "hybrid"] = "dense"
+    origin: Literal["dense", "hybrid", "structure"] = "dense"
     score: float
 
 

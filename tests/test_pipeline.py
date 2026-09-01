@@ -23,7 +23,7 @@ from fedresearch.evaluation.retrieval_metrics import score_retrieval
 from fedresearch.evaluation.runner import run_baseline
 from fedresearch.indexing.embeddings import EmbeddingCache
 from fedresearch.indexing.lexical_index import LexicalIndex
-from fedresearch.indexing.pipeline import build_index, preprocess
+from fedresearch.indexing.pipeline import build_index, index_documents, preprocess
 from fedresearch.llm.answering import answer_question, validate_citations
 from fedresearch.llm.client import ProviderError, validate_vectors
 from fedresearch.preprocessing.cleaning import clean_text
@@ -261,7 +261,7 @@ def test_index_reload_filters_budgets_and_empty_scope(corpus):
         assert service.provider.calls == calls
         with pytest.raises(ValueError, match="Unknown paper"):
             service.retrieve("updates", paper_ids=["missing"])
-        with pytest.raises(ValueError, match="Only dense and hybrid"):
+        with pytest.raises(ValueError, match="Supported retrieval modes"):
             service.retrieve("updates", mode="graph")
         with pytest.raises(ValueError, match="top_k"):
             service.retrieve("updates", top_k=0)
@@ -337,6 +337,66 @@ def test_hybrid_empty_channel_still_returns_the_other_channel(corpus, monkeypatc
         assert service.retrieve("proximal")
         assert service.last_trace["rankings"]["bm25"] == []
         assert service.last_trace["rankings"]["dense"]
+
+
+def test_section_and_fixed_indexes_preserve_independent_pointers_and_source_ids(corpus):
+    """Verify a section index preserves the fixed index, canonical files and original block identities."""
+    fixed = build_index(corpus, TestEmbedder())
+    pointer = (corpus.paths.indexes / "CURRENT.json").read_bytes()
+    originals = {p: file_sha256(p) for p in corpus.paths.processed.rglob("*.json")}
+    documents = index_documents(corpus)
+    original_blocks = {b.block_id: b.raw_text for d in documents for b in d.blocks}
+    corpus.indexing.chunk_policy = "section"
+    section = build_index(corpus, TestEmbedder())
+    assert section["index_id"] != fixed["index_id"]
+    assert (corpus.paths.indexes / "CURRENT.json").read_bytes() == pointer
+    assert (
+        json.loads((corpus.paths.indexes / "CURRENT_section.json").read_text())["index_id"]
+        == section["index_id"]
+    )
+    assert originals == {p: file_sha256(p) for p in corpus.paths.processed.rglob("*.json")}
+    corpus.retrieval.mode = "hybrid"
+    with RetrievalService(corpus, TestEmbedder()) as service:
+        assert service.manifest["index_id"] == section["index_id"]
+        assert all(
+            c.policy == "section" and len(c.section_ids) == 1 for c in service.store.chunks()
+        )
+        assert all(
+            service.store.block(identifier).raw_text == text
+            for identifier, text in original_blocks.items()
+        )
+    corpus.indexing.chunk_policy = "fixed"
+    provider = TestEmbedder()
+    assert build_index(corpus, provider)["index_id"] == fixed["index_id"]
+    assert provider.calls == 0
+    with RetrievalService(corpus, provider) as service:
+        assert service.retrieve("proximal updates")
+        with pytest.raises(ValueError, match="section chunks"):
+            service.retrieve("proximal", mode="structure")
+
+
+def test_structure_service_enforces_filters_budgets_and_empty_scopes(corpus):
+    """Verify expansion obeys section/paper/year/method scope and final provenance/token limits."""
+    corpus.indexing.chunk_policy = "section"
+    corpus.retrieval.mode = "structure"
+    build_index(corpus, TestEmbedder())
+    with RetrievalService(corpus, TestEmbedder()) as service:
+        evidence = service.retrieve(
+            "control updates", year_from=2020, method="control", section_hint="Introduction"
+        )
+        assert evidence and all(e.paper_id == "beta" and e.origin == "structure" for e in evidence)
+        assert all("Introduction" in " / ".join(e.section_path) for e in evidence)
+        assert len(evidence) <= corpus.retrieval.top_k
+        assert sum(e.token_count for e in evidence) <= corpus.retrieval.evidence_tokens
+        assert all(service.store.block(span.block_id) for e in evidence for span in e.spans)
+        trace = service.last_trace
+        assert len(trace["candidates"]) <= corpus.retrieval.candidate_limit
+        assert trace["structural_expansion"]["enabled"]
+        assert len(trace["structural_expansion"]["results"]) <= corpus.retrieval.expansion_limit
+        calls = service.provider.calls
+        assert service.retrieve("control", paper_ids=[]) == []
+        assert service.retrieve("control", section_hint="missing") == []
+        assert service.provider.calls == calls
 
 
 def test_embedding_cache_survives_partial_rebuild(corpus):
@@ -522,6 +582,109 @@ def test_hybrid_evaluation_replays_fused_pool_and_component_rankings(
     with RetrievalService(corpus, TestEmbedder(), reranker) as service:
         with pytest.raises(ValueError, match="same lexical index"):
             run_baseline(service, path, "dev", candidate_source=source)
+        assert service.provider.calls == 0
+
+
+def test_structure_evaluation_reuses_b2a_seeds_then_replays_final_pool(
+    corpus, baseline_run, monkeypatch
+):
+    """Verify seed replay still expands locally, while reranking replay skips every search and expansion."""
+    path, _, _ = baseline_run
+    question = json.loads(path.read_text())
+    question["question"] = "Which processor supports proximal updates?"
+    write_jsonl(path, [question])
+    corpus.indexing.chunk_policy = "section"
+    corpus.retrieval.mode = "hybrid"
+    build_index(corpus, TestEmbedder())
+    with RetrievalService(corpus, TestEmbedder()) as service:
+        b2a = run_baseline(service, path, "dev", with_answers=True)
+    assert b2a["failures"] == 0
+    seed_source = corpus.paths.runs / b2a["run_id"] / "run.json"
+    original = b2a["records"][0]["answer"]["trace"]["retrieval"]
+    corpus.retrieval.mode = "structure"
+    original_query = LexicalIndex.query
+
+    def local_neighbors_only(index, query, limit, paper_ids, chunk_ids=None):
+        """Helper to seed-replay tests: reject an initial corpus-wide lexical search."""
+        assert chunk_ids is not None and len(chunk_ids) <= 5
+        return original_query(index, query, limit, paper_ids, chunk_ids)
+
+    monkeypatch.setattr(LexicalIndex, "query", local_neighbors_only)
+    with RetrievalService(corpus, TestEmbedder()) as service:
+        service.provider.embed = Mock(side_effect=AssertionError("No query embedding"))
+        service.vectors.query = Mock(side_effect=AssertionError("No dense search"))
+        b2 = run_baseline(service, path, "dev", with_answers=True, seed_source=seed_source)
+        assert b2["failures"] == 0
+        trace = b2["records"][0]["answer"]["trace"]["retrieval"]
+        assert trace["structural_expansion"]["seed_candidates"] == original["candidates"]
+        assert trace["candidate_source"] == "saved_seeds"
+        assert b2["records"][0]["seed_candidate_metrics"] == b2a["records"][0]["candidate_metrics"]
+        assert trace["embedding_usage"]["requests"] == 0
+        assert b2["seed_source"] == {"run_id": b2a["run_id"], "sha256": file_sha256(seed_source)}
+        assert b2["candidate_source"] is None
+        assert b2["retrieval_protocol"]["rrf_constant"] == 60
+        service.provider.embed.assert_not_called()
+        service.vectors.query.assert_not_called()
+    final_source = corpus.paths.runs / b2["run_id"] / "run.json"
+    with monkeypatch.context() as empty:
+        empty.setattr(LexicalIndex, "query", Mock(return_value=[]))
+        with RetrievalService(corpus, TestEmbedder()) as service:
+            service.vectors.query = Mock(return_value=[])
+            no_evidence = run_baseline(service, path, "dev", with_answers=True)
+            assert no_evidence["failures"] == 0
+            assert no_evidence["records"][0]["answer"]["evidence"] == []
+    empty_source = corpus.paths.runs / no_evidence["run_id"] / "run.json"
+    reranker = Mock()
+    reranker.rerank.side_effect = lambda query, texts: (
+        [(i, float(i)) for i in reversed(range(len(texts)))],
+        {"enabled": True},
+    )
+    corpus.reranking.enabled = True
+    monkeypatch.setattr(LexicalIndex, "query", Mock(side_effect=AssertionError("No BM25 search")))
+    monkeypatch.setattr(
+        "fedresearch.retrieval.service.expand_hierarchy",
+        Mock(side_effect=AssertionError("No expansion")),
+    )
+    with RetrievalService(corpus, TestEmbedder(), reranker) as service:
+        service.provider.embed = Mock(side_effect=AssertionError("No embedding"))
+        service.vectors.query = Mock(side_effect=AssertionError("No dense search"))
+        replay = run_baseline(
+            service, path, "dev", with_answers=True, candidate_source=final_source
+        )
+        assert replay["failures"] == 0
+        after = replay["records"][0]["answer"]["trace"]["retrieval"]
+        assert after["candidates"] == trace["candidates"]
+        assert after["structural_expansion"] == trace["structural_expansion"]
+        assert (
+            replay["records"][0]["seed_candidate_metrics"]
+            == b2["records"][0]["seed_candidate_metrics"]
+        )
+        assert after["ranking_score"] == "reranker_relevance"
+        assert after["embedding_usage"]["requests"] == 0
+        with pytest.raises(ValueError, match="either candidate_source or seed_source"):
+            run_baseline(
+                service, path, "dev", candidate_source=final_source, seed_source=seed_source
+            )
+        with pytest.raises(ValueError, match="Seed source requires"):
+            run_baseline(service, path, "dev", seed_source=seed_source)
+        empty_replay = run_baseline(
+            service, path, "dev", with_answers=True, candidate_source=empty_source
+        )
+        assert empty_replay["failures"] == 0
+        assert empty_replay["records"][0]["answer"]["evidence"] == []
+
+
+def test_seed_replay_rejects_a_fixed_index_source_before_search(corpus, baseline_run):
+    """Verify B2a/B2 replay cannot mix chunk policies or silently fall back to a different index."""
+    path, source, _ = baseline_run
+    corpus.indexing.chunk_policy = "section"
+    corpus.retrieval.mode = "structure"
+    with pytest.raises(ValueError, match="No active index for this chunk policy"):
+        RetrievalService(corpus, TestEmbedder())
+    build_index(corpus, TestEmbedder())
+    with RetrievalService(corpus, TestEmbedder()) as service:
+        with pytest.raises(ValueError, match="Candidate source"):
+            run_baseline(service, path, "dev", seed_source=source)
         assert service.provider.calls == 0
 
 

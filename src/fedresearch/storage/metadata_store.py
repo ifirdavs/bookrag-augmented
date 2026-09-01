@@ -111,6 +111,13 @@ class MetadataStore:
             for row in self.db.execute("SELECT payload FROM chunks ORDER BY chunk_id")
         ]
 
+    def sections(self) -> list[Section]:
+        """Helper to hierarchy expansion: list persisted sections and their direct parent links."""
+        return [
+            Section.model_validate_json(row[0])
+            for row in self.db.execute("SELECT payload FROM sections ORDER BY section_id")
+        ]
+
     def statistics(self) -> dict:
         """Helper to index validation: count stored papers, sections, blocks and chunks."""
         return {

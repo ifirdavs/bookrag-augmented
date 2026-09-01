@@ -46,6 +46,10 @@ class Embedding(StrictModel):
     max_retries: int = Field(default=2, ge=0, le=5)
 
 
+class Indexing(StrictModel):
+    chunk_policy: Literal["fixed", "section"] = "fixed"
+
+
 class Generation(StrictModel):
     model: str = "claude-haiku-5-5"
     max_output_tokens: int = Field(default=2500, gt=0)
@@ -54,13 +58,16 @@ class Generation(StrictModel):
 
 
 class Retrieval(StrictModel):
-    mode: Literal["dense", "hybrid"] = "dense"
+    mode: Literal["dense", "hybrid", "structure"] = "dense"
     candidate_limit: int = Field(default=20, ge=1, le=100)
     rrf_constant: int = Field(default=60, ge=1)
     top_k: int = Field(default=5, ge=1, le=20)
     evidence_tokens: int = Field(default=4000, ge=1, le=32000)
     max_query_tokens: int = Field(default=1024, ge=1, le=8191)
     routing: Literal["disabled"] = "disabled"
+    expansion_seeds: int = Field(default=3, ge=1, le=10)
+    expansion_per_seed: int = Field(default=2, ge=1, le=3)
+    expansion_limit: int = Field(default=6, ge=1, le=20)
 
 
 class Reranking(StrictModel):
@@ -79,6 +86,7 @@ class Settings(StrictModel):
     paths: Paths = Field(default_factory=Paths)
     preprocessing: Preprocessing = Field(default_factory=Preprocessing)
     embedding: Embedding = Field(default_factory=Embedding)
+    indexing: Indexing = Field(default_factory=Indexing)
     generation: Generation = Field(default_factory=Generation)
     retrieval: Retrieval = Field(default_factory=Retrieval)
     reranking: Reranking = Field(default_factory=Reranking)
@@ -89,6 +97,11 @@ class Settings(StrictModel):
         """Helper to configuration validation: keep the final top-k within the candidate budget."""
         if self.retrieval.top_k > self.retrieval.candidate_limit:
             raise ValueError("top_k must not exceed candidate_limit")
+        if self.retrieval.mode == "structure":
+            if self.indexing.chunk_policy != "section":
+                raise ValueError("Structure retrieval requires section chunks")
+            if self.retrieval.expansion_limit >= self.retrieval.candidate_limit:
+                raise ValueError("expansion_limit must be smaller than candidate_limit")
         return self
 
 

@@ -9,6 +9,7 @@ from fedresearch.indexing.embeddings import EmbeddingCache
 from fedresearch.indexing.lexical_index import build_lexical_index
 from fedresearch.indexing.vector_index import VectorIndex
 from fedresearch.llm.client import Embedder, VoyageEmbedder
+from fedresearch.preprocessing.chunking import section_chunks
 from fedresearch.preprocessing.pdf_parser import parse_id_for, parse_pdf
 from fedresearch.preprocessing.validation import require_reviewed, validate_document
 from fedresearch.schemas import Paper, ParsedDocument
@@ -98,10 +99,35 @@ def canonical_store(settings: Settings) -> MetadataStore:
     return store
 
 
+def index_documents(settings: Settings) -> list[ParsedDocument]:
+    """Prepare the selected chunk policy from verified canonical blocks, preserving source/parse IDs."""
+    documents = load_processed(settings)
+    if settings.indexing.chunk_policy == "section":
+        for document in documents:
+            document.chunks = section_chunks(
+                document.blocks, document.sections, document.parse_id, settings.preprocessing
+            )
+            document.diagnostics = {
+                **document.diagnostics,
+                "chunks": len(document.chunks),
+                "chunk_policy": "section",
+            }
+            validate_document(document)
+    return documents
+
+
+def index_pointer(settings: Settings) -> Path:
+    """Helper to index persistence: keep the fixed and section index selections independent."""
+    filename = (
+        "CURRENT.json" if settings.indexing.chunk_policy == "fixed" else "CURRENT_section.json"
+    )
+    return settings.paths.indexes / filename
+
+
 def build_index(settings: Settings, provider: Embedder | None = None) -> dict:
     """Build BM25, cache chunk embeddings and activate Chroma with SQLite source lookup."""
     started = time.perf_counter()
-    documents = load_processed(settings)
+    documents = index_documents(settings)
     chunks = sorted([chunk for doc in documents for chunk in doc.chunks], key=lambda c: c.chunk_id)
     if not chunks:
         raise ValueError("Cannot index an empty corpus")
@@ -112,6 +138,9 @@ def build_index(settings: Settings, provider: Embedder | None = None) -> dict:
         "chunk_fingerprint": digest([c.model_dump(mode="json") for c in chunks]),
         "embedding": provider.identity,
     }
+    # Preserve all historical fixed-index identities; only section indexes add this field.
+    if settings.indexing.chunk_policy == "section":
+        identity["chunk_policy"] = "section"
     index_id = digest(identity)[:24]
     folder = settings.paths.indexes / index_id
     folder.mkdir(parents=True, exist_ok=True)
@@ -129,11 +158,12 @@ def build_index(settings: Settings, provider: Embedder | None = None) -> dict:
         lexical = build_lexical_index(
             folder / "bm25.sqlite", index_id, identity["chunk_fingerprint"], chunks
         )
-        atomic_json(settings.paths.indexes / "CURRENT.json", {"index_id": index_id})
+        atomic_json(index_pointer(settings), {"index_id": index_id})
         return {
             **saved,
             "reused": True,
             "lexical": lexical,
+            "chunk_policy": settings.indexing.chunk_policy,
             "current_build_usage": {},
             "current_build_seconds": time.perf_counter() - started,
         }
@@ -162,19 +192,22 @@ def build_index(settings: Settings, provider: Embedder | None = None) -> dict:
         "chunks": len(chunks),
         "cache_hits": hits,
         "lexical": lexical,
+        "chunk_policy": settings.indexing.chunk_policy,
         "usage": provider.usage,
         "seconds": time.perf_counter() - started,
     }
     atomic_json(folder / "index.json", result)
-    atomic_json(settings.paths.indexes / "CURRENT.json", {"index_id": index_id})
+    atomic_json(index_pointer(settings), {"index_id": index_id})
     return result
 
 
 def current_index(settings: Settings) -> tuple[Path, dict]:
     """Helper to RetrievalService: resolve the active completed index and check its manifest identity."""
-    pointer = settings.paths.indexes / "CURRENT.json"
+    pointer = index_pointer(settings)
     if not pointer.exists():
-        raise ValueError("No active index. Run fedresearch index first")
+        raise ValueError(
+            "No active index for this chunk policy. Run fedresearch index with the same config first"
+        )
     identifier = json.loads(pointer.read_text())["index_id"]
     if len(identifier) != 24 or any(c not in "0123456789abcdef" for c in identifier):
         raise ValueError("Invalid active index identity")
@@ -182,4 +215,6 @@ def current_index(settings: Settings) -> tuple[Path, dict]:
     manifest = json.loads((folder / "index.json").read_text())
     if manifest["index_id"] != identifier:
         raise ValueError("Index identity mismatch")
+    if manifest.get("chunk_policy", "fixed") != settings.indexing.chunk_policy:
+        raise ValueError("Index chunk policy differs from the configuration")
     return folder, manifest

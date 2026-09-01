@@ -47,6 +47,7 @@ def doctor(config: Config = CONFIG, live: bool = False):
         "embedding_dimensions": settings.embedding.dimensions,
         "retrieval_mode": settings.retrieval.mode,
         "candidate_limit": settings.retrieval.candidate_limit,
+        "chunk_policy": settings.indexing.chunk_policy,
         "tokenizer": settings.preprocessing.tokenizer,
         "tokenizer_revision": settings.preprocessing.tokenizer_revision,
         "generation_provider": "anthropic",
@@ -110,7 +111,7 @@ def preprocess_command(
 
 @app.command("index")
 def index_command(config: Config = CONFIG):
-    """Build BM25 and build or reuse dense vectors from the processed corpus."""
+    """Build BM25/dense indexes using fixed or section chunks from canonical processed sources."""
     emit(build_index(load_settings(config)))
 
 
@@ -209,10 +210,14 @@ def evaluate_command(
     split: str = "dev",
     with_answers: bool = False,
     candidate_source: Annotated[
-        Path | None, typer.Option(help="Replay a saved unreranked run.json for a paired comparison.")
+        Path | None,
+        typer.Option(help="Replay a saved unreranked run.json for a paired comparison."),
+    ] = None,
+    seed_source: Annotated[
+        Path | None, typer.Option(help="Reuse B2a hybrid seeds for bounded B2 hierarchy expansion.")
     ] = None,
 ):
-    """Score benchmark retrieval and optional answers; optionally replay a saved candidate pool."""
+    """Score retrieval/answers; replay a final pool for reranking or B2a seeds for hierarchy expansion."""
     if split not in {"dev", "test"}:
         raise ValueError("split must be dev or test")
     settings = load_settings(config)
@@ -223,6 +228,7 @@ def evaluate_command(
             split,
             with_answers,
             candidate_source,
+            seed_source,
         )
     emit(
         {

@@ -1,0 +1,2013 @@
+{
+  "verified_at": "2026-10-23T16:28:56.211905+00:00",
+  "status": "Phase 4 complete: section index, B2a/B2 exact-seed development comparison and targeted assistant answer review verified; hierarchy expansion regresses final gold-span diagnostics and remains experimental",
+  "index_build": {
+    "index_id": "679098a5db4830ef644dd3ad",
+    "schema_version": 1,
+    "chunk_policy": "section",
+    "chunk_fingerprint": "ae17e836d089268994409192b0cce57ce948096f6f14e2bd16ad472caaf04f4b",
+    "embedding": {
+      "provider": "voyageai",
+      "model": "voyage-4-large",
+      "dimensions": 2048,
+      "document_input_type": "document",
+      "output_dtype": "float",
+      "truncation": false
+    },
+    "papers": 40,
+    "chunks": 1514,
+    "cache_hits": 0,
+    "lexical": {
+      "schema_version": 1,
+      "index_id": "679098a5db4830ef644dd3ad",
+      "chunk_fingerprint": "ae17e836d089268994409192b0cce57ce948096f6f14e2bd16ad472caaf04f4b",
+      "implementation": "sqlite-fts5-bm25",
+      "sqlite_version": "3.45.3",
+      "tokenizer": "unicode61 remove_diacritics 0",
+      "k1": 1.2,
+      "b": 0.75,
+      "chunks": 1514
+    },
+    "usage": {
+      "input_tokens": 636094,
+      "requests": 48,
+      "estimated_cost_usd": null
+    },
+    "seconds": 41.26663054199889
+  },
+  "stored_sources": {
+    "papers": 40,
+    "sections": 955,
+    "blocks": 47592,
+    "chunks": 1514
+  },
+  "checks": {
+    "regenerated_chunks_match_sqlite": true,
+    "all_vectors_finite_nonzero_2048_dimensions": true,
+    "vector_ids_and_metadata_match": true,
+    "bm25_ids_and_text_match": true,
+    "sqlite_integrity_and_foreign_keys": "valid",
+    "canonical_papers_sections_blocks_unchanged": true,
+    "source_spans_match": true,
+    "no_cross_section_chunks": true,
+    "test_freeze_valid": true,
+    "b2a_b2_same_settings_except_retrieval_mode": true,
+    "fixed_index_unchanged": true,
+    "hosted_requests_during_verification": 0
+  },
+  "benchmarks": {
+    "dev": {
+      "questions": 5,
+      "sha256": "9318d9aa89601583ba6cb2237b97651133b885459db4a2383e1ab598f50f1ca3",
+      "source_spans": "valid"
+    },
+    "test": {
+      "questions": 15,
+      "sha256": "38357d7d652df28e990a765917f926529dce3eb7360459f1e22ed05f4230b61f",
+      "source_spans": "valid"
+    }
+  },
+  "fixed_index_id": "6f8ba8be92dcc84b51a5514f",
+  "b2a_run_id": "fca749fc1c0a4a7a81904e33978df1d5",
+  "b2_seed_replay_run_id": "d57813b4495b4ed299f6bb47c07bacb1",
+  "b2a": {
+    "run_id": "fca749fc1c0a4a7a81904e33978df1d5",
+    "sha256": "f261f5316ca4b22f775a7dda9927112e18882d014338ebf252bb7f3b69c6a9f1",
+    "created_at": "2026-10-22T22:02:39.777244+00:00",
+    "index_id": "679098a5db4830ef644dd3ad",
+    "dataset_sha256": "9318d9aa89601583ba6cb2237b97651133b885459db4a2383e1ab598f50f1ca3",
+    "prompt_sha256": "607d28b135416421a91808e91b058341946adeb6e30a7690a43dab74c1002d46",
+    "retrieval_protocol": {
+      "mode": "hybrid",
+      "chunk_policy": "section",
+      "embedding_model": "voyage-4-large",
+      "candidate_limit_per_search": 40,
+      "merged_candidate_limit": 40,
+      "rrf_constant": 60,
+      "reranking_model": null,
+      "top_k": 5,
+      "evidence_tokens": 4000,
+      "hierarchy_expansion": null,
+      "candidate_metrics_scope": "after fusion/optional expansion/cap and source deduplication, before reranking/packing"
+    },
+    "summary": {
+      "scored_answerable_questions": 5,
+      "precision_at_k": 0.24,
+      "evidence_group_recall_at_k": 0.7333333333333333,
+      "complete_coverage_at_k": 0.6,
+      "candidate_group_recall": 0.9333333333333333,
+      "candidate_complete_coverage": 0.8
+    },
+    "failures": 0,
+    "records": [
+      {
+        "question_id": "dev01",
+        "dense_candidates": 40,
+        "bm25_candidates": 40,
+        "fused_candidates": 40,
+        "deduplicated_candidates": 40,
+        "evidence_count": 5,
+        "evidence_tokens": 2615,
+        "precision_at_k": 0.2,
+        "evidence_group_recall_at_k": 1.0,
+        "complete_coverage_at_k": 1,
+        "covered_groups": [
+          "fedavg_mechanism"
+        ],
+        "candidate_metrics": {
+          "precision_at_k": 0.025,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "fedavg_mechanism"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "gold_ranks_in_fused_pool": {
+          "fedavg_mechanism": [
+            {
+              "rank": 1,
+              "chunk_id": "fedavg:b2992067bda5ce59:sc00009:02a20bbd"
+            }
+          ]
+        },
+        "evidence_ids": [
+          "fedavg:b2992067bda5ce59:sc00009:02a20bbd",
+          "on_device_optimization:e5f12f766bd9634c:sc00035:604b51cf",
+          "feddyn:13d483b91e3d49a8:sc00038:06c06d13",
+          "adaptive_edge:2d6d7501771d9440:sc00026:f73f67b6",
+          "noniid_silos:19d9e88a498e96cd:sc00007:e17e49cd"
+        ],
+        "sufficiency": "sufficient",
+        "seconds": 7.794651584001258,
+        "usage": {
+          "embedding": {
+            "input_tokens": 15,
+            "requests": 1,
+            "estimated_cost_usd": null
+          },
+          "generation": {
+            "input_tokens": 5637,
+            "output_tokens": 1225,
+            "model": "claude-haiku-5-5",
+            "response_id": "msg_011CgJ2hYRkwTLvKg6LJHEHQ",
+            "estimated_cost_usd": null
+          },
+          "reranking": {}
+        },
+        "local_evidence_replay": "exact"
+      },
+      {
+        "question_id": "dev02",
+        "dense_candidates": 40,
+        "bm25_candidates": 40,
+        "fused_candidates": 40,
+        "deduplicated_candidates": 40,
+        "evidence_count": 5,
+        "evidence_tokens": 2615,
+        "precision_at_k": 0.2,
+        "evidence_group_recall_at_k": 1.0,
+        "complete_coverage_at_k": 1,
+        "covered_groups": [
+          "proximal_benefits"
+        ],
+        "candidate_metrics": {
+          "precision_at_k": 0.025,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "proximal_benefits"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "gold_ranks_in_fused_pool": {
+          "proximal_benefits": [
+            {
+              "rank": 1,
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00011:bcdc647d"
+            }
+          ]
+        },
+        "evidence_ids": [
+          "fedprox:fd612a0a197f95f3:sc00011:bcdc647d",
+          "fedprox:fd612a0a197f95f3:sc00032:ac559567",
+          "fedprox:fd612a0a197f95f3:sc00003:1120767b",
+          "fednova:6ef1f1ca1271dde7:sc00006:1fa153e0",
+          "fedprox:fd612a0a197f95f3:sc00024:09ceedb7"
+        ],
+        "sufficiency": "sufficient",
+        "seconds": 2.4618400000035763,
+        "usage": {
+          "embedding": {
+            "input_tokens": 15,
+            "requests": 1,
+            "estimated_cost_usd": null
+          },
+          "generation": {
+            "input_tokens": 5679,
+            "output_tokens": 167,
+            "model": "claude-haiku-5-5",
+            "response_id": "msg_011CgJ2i4V23hX5A24SYYwGM",
+            "estimated_cost_usd": null
+          },
+          "reranking": {}
+        },
+        "local_evidence_replay": "exact"
+      },
+      {
+        "question_id": "dev03",
+        "dense_candidates": 40,
+        "bm25_candidates": 40,
+        "fused_candidates": 40,
+        "deduplicated_candidates": 39,
+        "evidence_count": 5,
+        "evidence_tokens": 2472,
+        "precision_at_k": 0.2,
+        "evidence_group_recall_at_k": 1.0,
+        "complete_coverage_at_k": 1,
+        "covered_groups": [
+          "control_variates"
+        ],
+        "candidate_metrics": {
+          "precision_at_k": 0.025,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "control_variates"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "gold_ranks_in_fused_pool": {
+          "control_variates": [
+            {
+              "rank": 5,
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00001:d15c61f6"
+            }
+          ]
+        },
+        "evidence_ids": [
+          "scaffold:5698214a4f6e337e:sc00003:bc9de562",
+          "scaffold:5698214a4f6e337e:sc00010:4f33efc1",
+          "scaffold:5698214a4f6e337e:sc00009:9bef3d59",
+          "scaffold:5698214a4f6e337e:sc00040:0dd87588",
+          "scaffold:5698214a4f6e337e:sc00001:d15c61f6"
+        ],
+        "sufficiency": "sufficient",
+        "seconds": 6.137139166938141,
+        "usage": {
+          "embedding": {
+            "input_tokens": 9,
+            "requests": 1,
+            "estimated_cost_usd": null
+          },
+          "generation": {
+            "input_tokens": 5342,
+            "output_tokens": 933,
+            "model": "claude-haiku-5-5",
+            "response_id": "msg_011CgJ2iEqrvQfyPwmhJG8SN",
+            "estimated_cost_usd": null
+          },
+          "reranking": {}
+        },
+        "local_evidence_replay": "exact"
+      },
+      {
+        "question_id": "dev04",
+        "dense_candidates": 40,
+        "bm25_candidates": 40,
+        "fused_candidates": 40,
+        "deduplicated_candidates": 40,
+        "evidence_count": 5,
+        "evidence_tokens": 2760,
+        "precision_at_k": 0.0,
+        "evidence_group_recall_at_k": 0.0,
+        "complete_coverage_at_k": 0,
+        "covered_groups": [],
+        "candidate_metrics": {
+          "precision_at_k": 0.05,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "fedprox",
+            "scaffold"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "gold_ranks_in_fused_pool": {
+          "fedprox": [
+            {
+              "rank": 23,
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00011:bcdc647d"
+            }
+          ],
+          "scaffold": [
+            {
+              "rank": 15,
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00001:d15c61f6"
+            }
+          ]
+        },
+        "evidence_ids": [
+          "fednova:6ef1f1ca1271dde7:sc00006:1fa153e0",
+          "scaffold:5698214a4f6e337e:sc00009:9bef3d59",
+          "scaffold:5698214a4f6e337e:sc00018:d0a0b7d3",
+          "fednova:6ef1f1ca1271dde7:sc00003:89379106",
+          "scaffold:5698214a4f6e337e:sc00003:bc9de562"
+        ],
+        "sufficiency": "partial",
+        "seconds": 3.6333457089494914,
+        "usage": {
+          "embedding": {
+            "input_tokens": 21,
+            "requests": 1,
+            "estimated_cost_usd": null
+          },
+          "generation": {
+            "input_tokens": 5936,
+            "output_tokens": 478,
+            "model": "claude-haiku-5-5",
+            "response_id": "msg_011CgJ2ihRGTMipwCS5jhXZi",
+            "estimated_cost_usd": null
+          },
+          "reranking": {}
+        },
+        "local_evidence_replay": "exact"
+      },
+      {
+        "question_id": "dev05",
+        "dense_candidates": 40,
+        "bm25_candidates": 40,
+        "fused_candidates": 40,
+        "deduplicated_candidates": 38,
+        "evidence_count": 5,
+        "evidence_tokens": 2028,
+        "precision_at_k": 0.6,
+        "evidence_group_recall_at_k": 0.6666666666666666,
+        "complete_coverage_at_k": 0,
+        "covered_groups": [
+          "mechanism",
+          "simulation"
+        ],
+        "candidate_metrics": {
+          "precision_at_k": 0.075,
+          "evidence_group_recall_at_k": 0.6666666666666666,
+          "complete_coverage_at_k": 0,
+          "covered_groups": [
+            "mechanism",
+            "simulation"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "gold_ranks_in_fused_pool": {
+          "mechanism": [
+            {
+              "rank": 4,
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00001:d15c61f6"
+            }
+          ],
+          "simulation": [
+            {
+              "rank": 2,
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00003:bc9de562"
+            },
+            {
+              "rank": 5,
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00004:01029c74"
+            }
+          ],
+          "real_experiments": []
+        },
+        "evidence_ids": [
+          "scaffold:5698214a4f6e337e:sc00010:4f33efc1",
+          "scaffold:5698214a4f6e337e:sc00003:bc9de562",
+          "scaffold:5698214a4f6e337e:sc00017:d5856b2d",
+          "scaffold:5698214a4f6e337e:sc00001:d15c61f6",
+          "scaffold:5698214a4f6e337e:sc00004:01029c74"
+        ],
+        "sufficiency": "partial",
+        "seconds": 5.603930290904827,
+        "usage": {
+          "embedding": {
+            "input_tokens": 20,
+            "requests": 1,
+            "estimated_cost_usd": null
+          },
+          "generation": {
+            "input_tokens": 4611,
+            "output_tokens": 1008,
+            "model": "claude-haiku-5-5",
+            "response_id": "msg_011CgJ2ixhYPBfRU5qXdw2ua",
+            "estimated_cost_usd": null
+          },
+          "reranking": {}
+        },
+        "local_evidence_replay": "exact"
+      }
+    ],
+    "usage": {
+      "embedding_requests": 5,
+      "embedding_tokens": 80,
+      "generation_responses": 5,
+      "generation_input_tokens": 27205,
+      "generation_output_tokens": 3811,
+      "reranking_requests": 0
+    },
+    "sum_question_seconds": 25.630906750797294,
+    "sum_retrieval_seconds": 2.3653332078829408,
+    "checks": {
+      "configuration_and_prompt_unchanged": true,
+      "b1_settings_differ_only_in_chunk_policy": true,
+      "all_scores_recomputed": true,
+      "all_bm25_rankings_reproduced": true,
+      "all_fusions_reproduced": true,
+      "all_final_evidence_replayed_exactly": true,
+      "all_citation_ids_and_source_spans_valid": true,
+      "test_freeze_unchanged": true,
+      "hosted_requests_during_verification": 0
+    },
+    "answer_review": {
+      "scope": "Post-run assistant review of all five texts against expected points, with targeted cited-source checks; not independent human grading or exhaustive claim-support scoring.",
+      "rubric": "Required-point relevance: 2 complete core facts, 1 partial, 0 absent; correctness and additional claims assessed separately.",
+      "scores": {
+        "dev01": 2,
+        "dev02": 2,
+        "dev03": 2,
+        "dev04": 2,
+        "dev05": 1
+      },
+      "mean": 1.8,
+      "notes": {
+        "dev01": "Addresses multiple local updates and weighted server averaging.",
+        "dev02": "States both proximal-term benefits.",
+        "dev03": "Explains control variates and the consistent gradient correction c - c_i; Option II source checked.",
+        "dev04": "Explains both mechanisms despite zero exact gold-span credit; FedProx supported by a cited FedNova summary. Marks partial and adds an unrequested performance-comparison limitation. Both gold groups are present later in the candidate pool.",
+        "dev05": "Explains control variates and simulated/extended-MNIST experiments, but the candidate pool lacks the annotated real-data protocol passage and the answer omits its three controlled factors. Correctly marks real-data details unavailable in supplied evidence."
+      }
+    }
+  },
+  "b1_reference": {
+    "run_id": "0bd7c449468a4a11b0f7fac4a9d72df5",
+    "sha256": "5deb205dd2a7e87c29fd9fd23fc7e1ca5da336276868f384c1b466230341d0a7",
+    "summary": {
+      "scored_answerable_questions": 5,
+      "precision_at_k": 0.2,
+      "evidence_group_recall_at_k": 0.5333333333333333,
+      "complete_coverage_at_k": 0.4,
+      "candidate_group_recall": 0.9,
+      "candidate_complete_coverage": 0.8
+    },
+    "comparison_scope": "Same canonical corpus, labels, models, prompt, search caps and final budgets; section chunk policy/index changes. Separate live searches, not identical pools."
+  },
+  "b2_seed_preflight": {
+    "source": {
+      "run_id": "fca749fc1c0a4a7a81904e33978df1d5",
+      "sha256": "f261f5316ca4b22f775a7dda9927112e18882d014338ebf252bb7f3b69c6a9f1"
+    },
+    "questions": 5,
+    "candidate_counts": {
+      "dev01": 40,
+      "dev02": 40,
+      "dev03": 40,
+      "dev04": 40,
+      "dev05": 40
+    },
+    "status": "compatible; exact-seed B2 run completed and verified"
+  },
+  "b2": {
+    "run_id": "d57813b4495b4ed299f6bb47c07bacb1",
+    "sha256": "9a3e4277436b083cad46f17cbf84b1cb2f35abf83679282de3e9441fad0942be",
+    "created_at": "2026-10-23T16:24:01.305715+00:00",
+    "index_id": "679098a5db4830ef644dd3ad",
+    "dataset_sha256": "9318d9aa89601583ba6cb2237b97651133b885459db4a2383e1ab598f50f1ca3",
+    "prompt_sha256": "607d28b135416421a91808e91b058341946adeb6e30a7690a43dab74c1002d46",
+    "seed_source": {
+      "run_id": "fca749fc1c0a4a7a81904e33978df1d5",
+      "sha256": "f261f5316ca4b22f775a7dda9927112e18882d014338ebf252bb7f3b69c6a9f1"
+    },
+    "retrieval_protocol": {
+      "mode": "structure",
+      "chunk_policy": "section",
+      "embedding_model": "voyage-4-large",
+      "candidate_limit_per_search": 40,
+      "merged_candidate_limit": 40,
+      "rrf_constant": 60,
+      "reranking_model": null,
+      "top_k": 5,
+      "evidence_tokens": 4000,
+      "hierarchy_expansion": {
+        "seeds": 3,
+        "per_seed": 2,
+        "limit": 6
+      },
+      "candidate_metrics_scope": "after fusion/optional expansion/cap and source deduplication, before reranking/packing"
+    },
+    "timing_scope": "hierarchy expansion/packing and optional generation; excludes replayed seed embedding/dense/BM25 searches",
+    "summary": {
+      "scored_answerable_questions": 5,
+      "precision_at_k": 0.16,
+      "evidence_group_recall_at_k": 0.4666666666666667,
+      "complete_coverage_at_k": 0.4,
+      "candidate_group_recall": 0.9333333333333333,
+      "candidate_complete_coverage": 0.8
+    },
+    "failures": 0,
+    "records": [
+      {
+        "question_id": "dev01",
+        "precision_at_k": 0.2,
+        "evidence_group_recall_at_k": 1.0,
+        "complete_coverage_at_k": 1,
+        "covered_groups": [
+          "fedavg_mechanism"
+        ],
+        "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication",
+        "candidate_metrics": {
+          "precision_at_k": 0.025,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "fedavg_mechanism"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "seed_candidate_metrics": {
+          "precision_at_k": 0.025,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "fedavg_mechanism"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "gold_ranks_in_expanded_pool": {
+          "fedavg_mechanism": [
+            {
+              "rank": 1,
+              "chunk_id": "fedavg:b2992067bda5ce59:sc00009:02a20bbd"
+            }
+          ]
+        },
+        "evidence_ids": [
+          "fedavg:b2992067bda5ce59:sc00009:02a20bbd",
+          "fedavg:b2992067bda5ce59:sc00008:d339e3ab",
+          "fedavg:b2992067bda5ce59:sc00010:2afbcafc",
+          "on_device_optimization:e5f12f766bd9634c:sc00035:604b51cf",
+          "on_device_optimization:e5f12f766bd9634c:sc00036:c56bf5da"
+        ],
+        "displaced_b2a_evidence": [
+          "feddyn:13d483b91e3d49a8:sc00038:06c06d13",
+          "adaptive_edge:2d6d7501771d9440:sc00026:f73f67b6",
+          "noniid_silos:19d9e88a498e96cd:sc00007:e17e49cd"
+        ],
+        "expansion": {
+          "enabled": true,
+          "seed_limit": 3,
+          "per_seed": 2,
+          "limit": 6,
+          "ordering": "anchor_then_context",
+          "context_score": "inherited_anchor_rrf",
+          "seed_candidates": [
+            {
+              "chunk_id": "fedavg:b2992067bda5ce59:sc00009:02a20bbd",
+              "score": 0.030158730158730156
+            },
+            {
+              "chunk_id": "on_device_optimization:e5f12f766bd9634c:sc00035:604b51cf",
+              "score": 0.03007688828584351
+            },
+            {
+              "chunk_id": "feddyn:13d483b91e3d49a8:sc00038:06c06d13",
+              "score": 0.02819138376017471
+            },
+            {
+              "chunk_id": "adaptive_edge:2d6d7501771d9440:sc00026:f73f67b6",
+              "score": 0.026702720973466286
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00007:e17e49cd",
+              "score": 0.024877149877149878
+            },
+            {
+              "chunk_id": "moon:7b614394e5712d5b:sc00004:f13e2dc1",
+              "score": 0.024269005847953218
+            },
+            {
+              "chunk_id": "fedavg_convergence:29a0dc8813e242df:sc00006:18c468e7",
+              "score": 0.023809523809523808
+            },
+            {
+              "chunk_id": "adaptive_edge:2d6d7501771d9440:sc00009:aa3745d7",
+              "score": 0.023431077007399288
+            },
+            {
+              "chunk_id": "adaptive_edge:2d6d7501771d9440:sc00010:a7adbb5f",
+              "score": 0.023157894736842106
+            },
+            {
+              "chunk_id": "mime:5fc7be35814f52d3:sc00022:04120b1e",
+              "score": 0.022809278350515466
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00010:4f33efc1",
+              "score": 0.02150786308973173
+            },
+            {
+              "chunk_id": "qffl:3f602da3a08945c0:sc00012:4901fd82",
+              "score": 0.021090021090021092
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00010:65497af1",
+              "score": 0.01639344262295082
+            },
+            {
+              "chunk_id": "perfedavg:37aff74a2645a2eb:sc00008:ae8e254f",
+              "score": 0.016129032258064516
+            },
+            {
+              "chunk_id": "survey:4d27aeace9008ecf:sc00075:7907ffcd",
+              "score": 0.016129032258064516
+            },
+            {
+              "chunk_id": "feature_leakage:73644a3dba188eea:sc00035:1b3649c8",
+              "score": 0.015873015873015872
+            },
+            {
+              "chunk_id": "personalization_survey:42a59bf76f5f205b:sc00019:b5d3f002",
+              "score": 0.015625
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00006:a8145c1e",
+              "score": 0.015625
+            },
+            {
+              "chunk_id": "adaptive_edge:2d6d7501771d9440:sc00028:98f93b1b",
+              "score": 0.015384615384615385
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00030:f94bf678",
+              "score": 0.015384615384615385
+            },
+            {
+              "chunk_id": "adaptive_edge:2d6d7501771d9440:sc00027:2c7c396e",
+              "score": 0.015151515151515152
+            },
+            {
+              "chunk_id": "survey:4d27aeace9008ecf:sc00015:4d08484b",
+              "score": 0.014925373134328358
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00011:a7a8e0b7",
+              "score": 0.014705882352941176
+            },
+            {
+              "chunk_id": "survey:4d27aeace9008ecf:sc00076:cf084e7d",
+              "score": 0.014705882352941176
+            },
+            {
+              "chunk_id": "sparse_ternary_compression:aec9e5a3372aed29:sc00005:b46f6ded",
+              "score": 0.014492753623188406
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00009:5c61e6a3",
+              "score": 0.014285714285714285
+            },
+            {
+              "chunk_id": "adaptive_edge:2d6d7501771d9440:sc00011:525cbdbe",
+              "score": 0.014084507042253521
+            },
+            {
+              "chunk_id": "fedopt:2ccd6a71c7cc1f39:sc00007:30829296",
+              "score": 0.014084507042253521
+            },
+            {
+              "chunk_id": "pfedme:5608f0780ba4ee04:sc00008:f3f1404d",
+              "score": 0.013888888888888888
+            },
+            {
+              "chunk_id": "survey:4d27aeace9008ecf:sc00020:8fece8f9",
+              "score": 0.013888888888888888
+            },
+            {
+              "chunk_id": "mime:5fc7be35814f52d3:sc00007:c3981da5",
+              "score": 0.0136986301369863
+            },
+            {
+              "chunk_id": "survey:4d27aeace9008ecf:sc00070:24d7c795",
+              "score": 0.013513513513513514
+            },
+            {
+              "chunk_id": "fedavg_convergence:29a0dc8813e242df:sc00002:b5cfc984",
+              "score": 0.013333333333333334
+            },
+            {
+              "chunk_id": "perfedavg:37aff74a2645a2eb:sc00007:c4d2f9f0",
+              "score": 0.013333333333333334
+            },
+            {
+              "chunk_id": "fl_challenges:8b392fbf7774f301:sc00022:58e9bd5b",
+              "score": 0.012987012987012988
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00035:22e2be48",
+              "score": 0.012987012987012988
+            },
+            {
+              "chunk_id": "fedavg_convergence:29a0dc8813e242df:sc00007:3389a11b",
+              "score": 0.01282051282051282
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00005:cbd11520",
+              "score": 0.012658227848101266
+            },
+            {
+              "chunk_id": "secure_aggregation:73e9d5128c885b82:sc00005:b54048fd",
+              "score": 0.012658227848101266
+            },
+            {
+              "chunk_id": "adaptive_edge:2d6d7501771d9440:sc00005:3764ea41",
+              "score": 0.0125
+            }
+          ],
+          "results": [
+            {
+              "chunk_id": "fedavg:b2992067bda5ce59:sc00008:d339e3ab",
+              "from_seed": "fedavg:b2992067bda5ce59:sc00009:02a20bbd",
+              "from_section": "fedavg:b2992067bda5ce59:s003",
+              "section_id": "fedavg:b2992067bda5ce59:s003",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 4.212433026941957,
+              "action": "added",
+              "candidate_rank": 2
+            },
+            {
+              "chunk_id": "fedavg:b2992067bda5ce59:sc00010:2afbcafc",
+              "from_seed": "fedavg:b2992067bda5ce59:sc00009:02a20bbd",
+              "from_section": "fedavg:b2992067bda5ce59:s003",
+              "section_id": "fedavg:b2992067bda5ce59:s003",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 2.660865611761421,
+              "action": "added",
+              "candidate_rank": 3
+            },
+            {
+              "chunk_id": "on_device_optimization:e5f12f766bd9634c:sc00036:c56bf5da",
+              "from_seed": "on_device_optimization:e5f12f766bd9634c:sc00035:604b51cf",
+              "from_section": "on_device_optimization:e5f12f766bd9634c:s018",
+              "section_id": "on_device_optimization:e5f12f766bd9634c:s018",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 7.239254319667863,
+              "action": "added",
+              "candidate_rank": 5
+            },
+            {
+              "chunk_id": "on_device_optimization:e5f12f766bd9634c:sc00033:39a7e069",
+              "from_seed": "on_device_optimization:e5f12f766bd9634c:sc00035:604b51cf",
+              "from_section": "on_device_optimization:e5f12f766bd9634c:s018",
+              "section_id": "on_device_optimization:e5f12f766bd9634c:s016",
+              "reason": "parent_section",
+              "selection": "bm25",
+              "lexical_score": 2.006266395405274,
+              "action": "added",
+              "candidate_rank": 6
+            }
+          ],
+          "dropped_seed_ids": [
+            "fedavg_convergence:29a0dc8813e242df:sc00007:3389a11b",
+            "fednova:6ef1f1ca1271dde7:sc00005:cbd11520",
+            "secure_aggregation:73e9d5128c885b82:sc00005:b54048fd",
+            "adaptive_edge:2d6d7501771d9440:sc00005:3764ea41"
+          ]
+        },
+        "context_chunks_in_final_evidence": 3,
+        "evidence_count": 5,
+        "evidence_tokens": 2851,
+        "sufficiency": "partial",
+        "seconds": 4.346858124947175,
+        "usage": {
+          "embedding": {
+            "input_tokens": 0,
+            "requests": 0,
+            "estimated_cost_usd": null
+          },
+          "generation": {
+            "input_tokens": 5972,
+            "output_tokens": 321,
+            "model": "claude-haiku-5-5",
+            "response_id": "msg_011CgKUg9b5oiYh3bvrKvEGE",
+            "estimated_cost_usd": null
+          },
+          "reranking": {}
+        },
+        "local_seed_and_final_replays": "exact"
+      },
+      {
+        "question_id": "dev02",
+        "precision_at_k": 0.2,
+        "evidence_group_recall_at_k": 1.0,
+        "complete_coverage_at_k": 1,
+        "covered_groups": [
+          "proximal_benefits"
+        ],
+        "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication",
+        "candidate_metrics": {
+          "precision_at_k": 0.025,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "proximal_benefits"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "seed_candidate_metrics": {
+          "precision_at_k": 0.025,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "proximal_benefits"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "gold_ranks_in_expanded_pool": {
+          "proximal_benefits": [
+            {
+              "rank": 1,
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00011:bcdc647d"
+            }
+          ]
+        },
+        "evidence_ids": [
+          "fedprox:fd612a0a197f95f3:sc00011:bcdc647d",
+          "fedprox:fd612a0a197f95f3:sc00010:bfbf4ef8",
+          "fedprox:fd612a0a197f95f3:sc00012:84e2aaff",
+          "fedprox:fd612a0a197f95f3:sc00032:ac559567",
+          "fedprox:fd612a0a197f95f3:sc00033:82723496"
+        ],
+        "displaced_b2a_evidence": [
+          "fedprox:fd612a0a197f95f3:sc00003:1120767b",
+          "fednova:6ef1f1ca1271dde7:sc00006:1fa153e0",
+          "fedprox:fd612a0a197f95f3:sc00024:09ceedb7"
+        ],
+        "expansion": {
+          "enabled": true,
+          "seed_limit": 3,
+          "per_seed": 2,
+          "limit": 6,
+          "ordering": "anchor_then_context",
+          "context_score": "inherited_anchor_rrf",
+          "seed_candidates": [
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00011:bcdc647d",
+              "score": 0.03200204813108039
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00032:ac559567",
+              "score": 0.031754032258064516
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00003:1120767b",
+              "score": 0.030536130536130537
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00006:1fa153e0",
+              "score": 0.03009207275993712
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00024:09ceedb7",
+              "score": 0.030090497737556562
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00012:84e2aaff",
+              "score": 0.029906956136464335
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00027:1dcb8ef9",
+              "score": 0.029850746268656716
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00010:bfbf4ef8",
+              "score": 0.029571646010002173
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00025:cf5468fc",
+              "score": 0.028577260665441927
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00033:82723496",
+              "score": 0.028370221327967807
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00023:fbcb3c0f",
+              "score": 0.02803921568627451
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00006:27dc959c",
+              "score": 0.0260840108401084
+            },
+            {
+              "chunk_id": "fedavg_convergence:29a0dc8813e242df:sc00015:bd03dd93",
+              "score": 0.025934278350515462
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00016:dae6e2f9",
+              "score": 0.02470238095238095
+            },
+            {
+              "chunk_id": "survey:4d27aeace9008ecf:sc00046:259d5d10",
+              "score": 0.024152480721664482
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00011:a7a8e0b7",
+              "score": 0.02402186421173763
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00034:2a860ecd",
+              "score": 0.023856578204404292
+            },
+            {
+              "chunk_id": "ditto:e4f60c5885ecf9d9:sc00011:93d277d0",
+              "score": 0.023159303882195448
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00006:edf2ce2d",
+              "score": 0.02286386203292396
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00005:cbd11520",
+              "score": 0.020101010101010102
+            },
+            {
+              "chunk_id": "moon:7b614394e5712d5b:sc00016:502a624d",
+              "score": 0.015151515151515152
+            },
+            {
+              "chunk_id": "moon:7b614394e5712d5b:sc00004:f13e2dc1",
+              "score": 0.014492753623188406
+            },
+            {
+              "chunk_id": "feature_leakage:73644a3dba188eea:sc00032:bb4c142b",
+              "score": 0.013888888888888888
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00007:e17e49cd",
+              "score": 0.013513513513513514
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00015:47a8c5d9",
+              "score": 0.013333333333333334
+            },
+            {
+              "chunk_id": "fedbn:a2ff51da5823a66f:sc00005:b553e447",
+              "score": 0.013157894736842105
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00040:19485a24",
+              "score": 0.013157894736842105
+            },
+            {
+              "chunk_id": "moon:7b614394e5712d5b:sc00017:deb386dc",
+              "score": 0.012987012987012988
+            },
+            {
+              "chunk_id": "feddyn:13d483b91e3d49a8:sc00010:3d0b7e73",
+              "score": 0.01282051282051282
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00001:34ffa625",
+              "score": 0.01282051282051282
+            },
+            {
+              "chunk_id": "fedavg_convergence:29a0dc8813e242df:sc00003:fba1b3d3",
+              "score": 0.0125
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00041:f3fb11d9",
+              "score": 0.0125
+            },
+            {
+              "chunk_id": "fedbn:a2ff51da5823a66f:sc00039:a3b549fb",
+              "score": 0.012345679012345678
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00023:f24e32a0",
+              "score": 0.012345679012345678
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00019:71d7887c",
+              "score": 0.012195121951219513
+            },
+            {
+              "chunk_id": "moon:7b614394e5712d5b:sc00023:4e67f64b",
+              "score": 0.012048192771084338
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00021:3f2ec692",
+              "score": 0.011904761904761904
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00007:5cf6793c",
+              "score": 0.011904761904761904
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00002:e584e808",
+              "score": 0.011764705882352941
+            },
+            {
+              "chunk_id": "secure_aggregation:73e9d5128c885b82:sc00002:03c3176e",
+              "score": 0.011764705882352941
+            }
+          ],
+          "results": [
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00010:bfbf4ef8",
+              "from_seed": "fedprox:fd612a0a197f95f3:sc00011:bcdc647d",
+              "from_section": "fedprox:fd612a0a197f95f3:s006",
+              "section_id": "fedprox:fd612a0a197f95f3:s006",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 11.022391498489029,
+              "action": "promoted",
+              "candidate_rank": 2
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00012:84e2aaff",
+              "from_seed": "fedprox:fd612a0a197f95f3:sc00011:bcdc647d",
+              "from_section": "fedprox:fd612a0a197f95f3:s006",
+              "section_id": "fedprox:fd612a0a197f95f3:s006",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 10.988198558499825,
+              "action": "promoted",
+              "candidate_rank": 3
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00033:82723496",
+              "from_seed": "fedprox:fd612a0a197f95f3:sc00032:ac559567",
+              "from_section": "fedprox:fd612a0a197f95f3:s021",
+              "section_id": "fedprox:fd612a0a197f95f3:s021",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 12.18066166994374,
+              "action": "promoted",
+              "candidate_rank": 5
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00002:e584e808",
+              "from_seed": "fedprox:fd612a0a197f95f3:sc00003:1120767b",
+              "from_section": "fedprox:fd612a0a197f95f3:s002",
+              "section_id": "fedprox:fd612a0a197f95f3:s002",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 5.201378402707869,
+              "action": "promoted",
+              "candidate_rank": 7
+            }
+          ],
+          "dropped_seed_ids": []
+        },
+        "context_chunks_in_final_evidence": 3,
+        "evidence_count": 5,
+        "evidence_tokens": 2706,
+        "sufficiency": "sufficient",
+        "seconds": 2.4619507079478353,
+        "usage": {
+          "embedding": {
+            "input_tokens": 0,
+            "requests": 0,
+            "estimated_cost_usd": null
+          },
+          "generation": {
+            "input_tokens": 5722,
+            "output_tokens": 144,
+            "model": "claude-haiku-5-5",
+            "response_id": "msg_011CgKUgPp5x6dk8q54WP18f",
+            "estimated_cost_usd": null
+          },
+          "reranking": {}
+        },
+        "local_seed_and_final_replays": "exact"
+      },
+      {
+        "question_id": "dev03",
+        "precision_at_k": 0.0,
+        "evidence_group_recall_at_k": 0.0,
+        "complete_coverage_at_k": 0,
+        "covered_groups": [],
+        "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication",
+        "candidate_metrics": {
+          "precision_at_k": 0.025,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "control_variates"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "seed_candidate_metrics": {
+          "precision_at_k": 0.025,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "control_variates"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "gold_ranks_in_expanded_pool": {
+          "control_variates": [
+            {
+              "rank": 8,
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00001:d15c61f6"
+            }
+          ]
+        },
+        "evidence_ids": [
+          "scaffold:5698214a4f6e337e:sc00003:bc9de562",
+          "scaffold:5698214a4f6e337e:sc00002:05eb53b2",
+          "scaffold:5698214a4f6e337e:sc00004:01029c74",
+          "scaffold:5698214a4f6e337e:sc00010:4f33efc1",
+          "scaffold:5698214a4f6e337e:sc00009:9bef3d59"
+        ],
+        "displaced_b2a_evidence": [
+          "scaffold:5698214a4f6e337e:sc00040:0dd87588",
+          "scaffold:5698214a4f6e337e:sc00001:d15c61f6"
+        ],
+        "expansion": {
+          "enabled": true,
+          "seed_limit": 3,
+          "per_seed": 2,
+          "limit": 6,
+          "ordering": "anchor_then_context",
+          "context_score": "inherited_anchor_rrf",
+          "seed_candidates": [
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00003:bc9de562",
+              "score": 0.032266458495966696
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00010:4f33efc1",
+              "score": 0.03177805800756621
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00009:9bef3d59",
+              "score": 0.030621785881252923
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00040:0dd87588",
+              "score": 0.03055037313432836
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00001:d15c61f6",
+              "score": 0.0304147465437788
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00049:fdf30f92",
+              "score": 0.02900988017658188
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00043:6f14308f",
+              "score": 0.02877846790890269
+            },
+            {
+              "chunk_id": "mime:5fc7be35814f52d3:sc00004:f1ee387e",
+              "score": 0.028693528693528692
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00023:3319c9a6",
+              "score": 0.028205128205128206
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00046:de593a76",
+              "score": 0.02758751902587519
+            },
+            {
+              "chunk_id": "mime:5fc7be35814f52d3:sc00022:04120b1e",
+              "score": 0.02749719416386083
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00008:71f0d9fa",
+              "score": 0.027402402402402402
+            },
+            {
+              "chunk_id": "mime:5fc7be35814f52d3:sc00023:6fd80d47",
+              "score": 0.02738970588235294
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00041:a4752ba9",
+              "score": 0.026515151515151516
+            },
+            {
+              "chunk_id": "fedopt:2ccd6a71c7cc1f39:sc00029:903306a6",
+              "score": 0.026132699813337858
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00004:01029c74",
+              "score": 0.025833333333333333
+            },
+            {
+              "chunk_id": "personalization_survey:42a59bf76f5f205b:sc00009:a810abc0",
+              "score": 0.025694893341952164
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00002:05eb53b2",
+              "score": 0.025458570524984188
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00012:96256687",
+              "score": 0.024222968043192763
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00017:d5856b2d",
+              "score": 0.022753716871363933
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00006:edf2ce2d",
+              "score": 0.02180353122407868
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00048:f6b2cb26",
+              "score": 0.0136986301369863
+            },
+            {
+              "chunk_id": "mime:5fc7be35814f52d3:sc00016:2f308201",
+              "score": 0.013513513513513514
+            },
+            {
+              "chunk_id": "clustered_fl:b53ceb4830998d4c:sc00005:8a936153",
+              "score": 0.013333333333333334
+            },
+            {
+              "chunk_id": "moon:7b614394e5712d5b:sc00018:1cd2be98",
+              "score": 0.013157894736842105
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00036:371b32fc",
+              "score": 0.013157894736842105
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00011:1cede287",
+              "score": 0.012987012987012988
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00039:c945de0d",
+              "score": 0.012658227848101266
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00047:e87ac188",
+              "score": 0.012658227848101266
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00022:92d0cf42",
+              "score": 0.0125
+            },
+            {
+              "chunk_id": "fedopt:2ccd6a71c7cc1f39:sc00016:e2b70110",
+              "score": 0.012345679012345678
+            },
+            {
+              "chunk_id": "personalization_survey:42a59bf76f5f205b:sc00010:2917bd68",
+              "score": 0.012195121951219513
+            },
+            {
+              "chunk_id": "personalization_survey:42a59bf76f5f205b:sc00028:d741a491",
+              "score": 0.012195121951219513
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00044:d70c377e",
+              "score": 0.012048192771084338
+            },
+            {
+              "chunk_id": "multitask:c8fc1189bf7e2d89:sc00021:b29f153b",
+              "score": 0.011904761904761904
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00037:c0853c7a",
+              "score": 0.011904761904761904
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00007:379f981b",
+              "score": 0.011627906976744186
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00014:890ac373",
+              "score": 0.011627906976744186
+            },
+            {
+              "chunk_id": "mime:5fc7be35814f52d3:sc00006:dafe16ec",
+              "score": 0.011494252873563218
+            },
+            {
+              "chunk_id": "pfedme:5608f0780ba4ee04:sc00026:358be1d5",
+              "score": 0.011363636363636364
+            }
+          ],
+          "results": [
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00002:05eb53b2",
+              "from_seed": "scaffold:5698214a4f6e337e:sc00003:bc9de562",
+              "from_section": "scaffold:5698214a4f6e337e:s002",
+              "section_id": "scaffold:5698214a4f6e337e:s002",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 11.048969180879832,
+              "action": "promoted",
+              "candidate_rank": 2
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00004:01029c74",
+              "from_seed": "scaffold:5698214a4f6e337e:sc00003:bc9de562",
+              "from_section": "scaffold:5698214a4f6e337e:s002",
+              "section_id": "scaffold:5698214a4f6e337e:s002",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 8.480707918386374,
+              "action": "promoted",
+              "candidate_rank": 3
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00006:a8145c1e",
+              "from_seed": "scaffold:5698214a4f6e337e:sc00009:9bef3d59",
+              "from_section": "scaffold:5698214a4f6e337e:s006",
+              "section_id": "scaffold:5698214a4f6e337e:s004",
+              "reason": "parent_section",
+              "selection": "bm25",
+              "lexical_score": 7.268173466963693,
+              "action": "added",
+              "candidate_rank": 6
+            }
+          ],
+          "dropped_seed_ids": [
+            "pfedme:5608f0780ba4ee04:sc00026:358be1d5"
+          ]
+        },
+        "context_chunks_in_final_evidence": 2,
+        "evidence_count": 5,
+        "evidence_tokens": 2718,
+        "sufficiency": "sufficient",
+        "seconds": 4.573281374992803,
+        "usage": {
+          "embedding": {
+            "input_tokens": 0,
+            "requests": 0,
+            "estimated_cost_usd": null
+          },
+          "generation": {
+            "input_tokens": 5547,
+            "output_tokens": 303,
+            "model": "claude-haiku-5-5",
+            "response_id": "msg_011CgKUgaxohdr6eiBZ57VQ3",
+            "estimated_cost_usd": null
+          },
+          "reranking": {}
+        },
+        "local_seed_and_final_replays": "exact"
+      },
+      {
+        "question_id": "dev04",
+        "precision_at_k": 0.0,
+        "evidence_group_recall_at_k": 0.0,
+        "complete_coverage_at_k": 0,
+        "covered_groups": [],
+        "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication",
+        "candidate_metrics": {
+          "precision_at_k": 0.05,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "fedprox",
+            "scaffold"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "seed_candidate_metrics": {
+          "precision_at_k": 0.05,
+          "evidence_group_recall_at_k": 1.0,
+          "complete_coverage_at_k": 1,
+          "covered_groups": [
+            "fedprox",
+            "scaffold"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "gold_ranks_in_expanded_pool": {
+          "fedprox": [
+            {
+              "rank": 27,
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00011:bcdc647d"
+            }
+          ],
+          "scaffold": [
+            {
+              "rank": 19,
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00001:d15c61f6"
+            }
+          ]
+        },
+        "evidence_ids": [
+          "fednova:6ef1f1ca1271dde7:sc00006:1fa153e0",
+          "fednova:6ef1f1ca1271dde7:sc00005:cbd11520",
+          "scaffold:5698214a4f6e337e:sc00009:9bef3d59",
+          "scaffold:5698214a4f6e337e:sc00006:a8145c1e",
+          "scaffold:5698214a4f6e337e:sc00018:d0a0b7d3"
+        ],
+        "displaced_b2a_evidence": [
+          "fednova:6ef1f1ca1271dde7:sc00003:89379106",
+          "scaffold:5698214a4f6e337e:sc00003:bc9de562"
+        ],
+        "expansion": {
+          "enabled": true,
+          "seed_limit": 3,
+          "per_seed": 2,
+          "limit": 6,
+          "ordering": "anchor_then_context",
+          "context_score": "inherited_anchor_rrf",
+          "seed_candidates": [
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00006:1fa153e0",
+              "score": 0.03177805800756621
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00009:9bef3d59",
+              "score": 0.03128054740957967
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00018:d0a0b7d3",
+              "score": 0.03128054740957967
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00003:89379106",
+              "score": 0.031009615384615385
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00003:bc9de562",
+              "score": 0.03028233151183971
+            },
+            {
+              "chunk_id": "mime:5fc7be35814f52d3:sc00004:f1ee387e",
+              "score": 0.029957522915269395
+            },
+            {
+              "chunk_id": "feddyn:13d483b91e3d49a8:sc00005:be6b3d35",
+              "score": 0.029211087420042643
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00006:edf2ce2d",
+              "score": 0.029138513513513514
+            },
+            {
+              "chunk_id": "personalization_survey:42a59bf76f5f205b:sc00009:a810abc0",
+              "score": 0.027984344422700584
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00004:01029c74",
+              "score": 0.027364110201042444
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00046:de593a76",
+              "score": 0.026625704045058884
+            },
+            {
+              "chunk_id": "survey:4d27aeace9008ecf:sc00047:9c5b5342",
+              "score": 0.026153846153846153
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00008:724aa7e0",
+              "score": 0.025353016688061617
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00008:71f0d9fa",
+              "score": 0.02424331472230385
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00001:d15c61f6",
+              "score": 0.023839931885908897
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00010:4f33efc1",
+              "score": 0.022403003754693368
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00011:1cede287",
+              "score": 0.022291021671826623
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00006:27dc959c",
+              "score": 0.020416666666666666
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00002:93ed62d5",
+              "score": 0.014925373134328358
+            },
+            {
+              "chunk_id": "survey:4d27aeace9008ecf:sc00107:9e9559df",
+              "score": 0.014705882352941176
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00012:84e2aaff",
+              "score": 0.014492753623188406
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00024:96f8e9da",
+              "score": 0.014492753623188406
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00011:bcdc647d",
+              "score": 0.014084507042253521
+            },
+            {
+              "chunk_id": "fedopt:2ccd6a71c7cc1f39:sc00004:50908c6d",
+              "score": 0.013888888888888888
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00010:bfbf4ef8",
+              "score": 0.0136986301369863
+            },
+            {
+              "chunk_id": "mime:5fc7be35814f52d3:sc00026:30e632cd",
+              "score": 0.013513513513513514
+            },
+            {
+              "chunk_id": "moon:7b614394e5712d5b:sc00018:1cd2be98",
+              "score": 0.013333333333333334
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00024:09ceedb7",
+              "score": 0.013157894736842105
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00021:3f2ec692",
+              "score": 0.012987012987012988
+            },
+            {
+              "chunk_id": "fedprox:fd612a0a197f95f3:sc00032:ac559567",
+              "score": 0.012987012987012988
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00011:a7a8e0b7",
+              "score": 0.01282051282051282
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00012:96256687",
+              "score": 0.012658227848101266
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00019:60d6c541",
+              "score": 0.0125
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00006:a8145c1e",
+              "score": 0.0125
+            },
+            {
+              "chunk_id": "adaptive_edge:2d6d7501771d9440:sc00004:5fc37c19",
+              "score": 0.012345679012345678
+            },
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00005:cbd11520",
+              "score": 0.012048192771084338
+            },
+            {
+              "chunk_id": "feddyn:13d483b91e3d49a8:sc00012:062e6223",
+              "score": 0.011904761904761904
+            },
+            {
+              "chunk_id": "moon:7b614394e5712d5b:sc00004:f13e2dc1",
+              "score": 0.011904761904761904
+            },
+            {
+              "chunk_id": "fedcs:b7e55b8733dc446d:sc00004:b9ab7d0e",
+              "score": 0.011627906976744186
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00020:6b6beeb6",
+              "score": 0.011627906976744186
+            }
+          ],
+          "results": [
+            {
+              "chunk_id": "fednova:6ef1f1ca1271dde7:sc00005:cbd11520",
+              "from_seed": "fednova:6ef1f1ca1271dde7:sc00006:1fa153e0",
+              "from_section": "fednova:6ef1f1ca1271dde7:s003",
+              "section_id": "fednova:6ef1f1ca1271dde7:s003",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 7.5425469120352195,
+              "action": "promoted",
+              "candidate_rank": 2
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00006:a8145c1e",
+              "from_seed": "scaffold:5698214a4f6e337e:sc00009:9bef3d59",
+              "from_section": "scaffold:5698214a4f6e337e:s006",
+              "section_id": "scaffold:5698214a4f6e337e:s004",
+              "reason": "parent_section",
+              "selection": "bm25",
+              "lexical_score": 9.537560219791835,
+              "action": "promoted",
+              "candidate_rank": 4
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00019:18af1638",
+              "from_seed": "scaffold:5698214a4f6e337e:sc00018:d0a0b7d3",
+              "from_section": "scaffold:5698214a4f6e337e:s013",
+              "section_id": "scaffold:5698214a4f6e337e:s013",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 8.478567461071371,
+              "action": "added",
+              "candidate_rank": 6
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00015:b7a8e524",
+              "from_seed": "scaffold:5698214a4f6e337e:sc00018:d0a0b7d3",
+              "from_section": "scaffold:5698214a4f6e337e:s013",
+              "section_id": "scaffold:5698214a4f6e337e:s010",
+              "reason": "parent_section",
+              "selection": "bm25",
+              "lexical_score": 4.492312913262963,
+              "action": "added",
+              "candidate_rank": 7
+            }
+          ],
+          "dropped_seed_ids": [
+            "fedcs:b7e55b8733dc446d:sc00004:b9ab7d0e",
+            "scaffold:5698214a4f6e337e:sc00020:6b6beeb6"
+          ]
+        },
+        "context_chunks_in_final_evidence": 2,
+        "evidence_count": 5,
+        "evidence_tokens": 2637,
+        "sufficiency": "sufficient",
+        "seconds": 6.792677582940087,
+        "usage": {
+          "embedding": {
+            "input_tokens": 0,
+            "requests": 0,
+            "estimated_cost_usd": null
+          },
+          "generation": {
+            "input_tokens": 5682,
+            "output_tokens": 1088,
+            "model": "claude-haiku-5-5",
+            "response_id": "msg_011CgKUgwSrFBZBEcXKixnp8",
+            "estimated_cost_usd": null
+          },
+          "reranking": {}
+        },
+        "local_seed_and_final_replays": "exact"
+      },
+      {
+        "question_id": "dev05",
+        "precision_at_k": 0.4,
+        "evidence_group_recall_at_k": 0.3333333333333333,
+        "complete_coverage_at_k": 0,
+        "covered_groups": [
+          "simulation"
+        ],
+        "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication",
+        "candidate_metrics": {
+          "precision_at_k": 0.075,
+          "evidence_group_recall_at_k": 0.6666666666666666,
+          "complete_coverage_at_k": 0,
+          "covered_groups": [
+            "mechanism",
+            "simulation"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "seed_candidate_metrics": {
+          "precision_at_k": 0.075,
+          "evidence_group_recall_at_k": 0.6666666666666666,
+          "complete_coverage_at_k": 0,
+          "covered_groups": [
+            "mechanism",
+            "simulation"
+          ],
+          "relevance_rule": "at least 50% gold character-span coverage; required-fact support still needs manual adjudication"
+        },
+        "gold_ranks_in_expanded_pool": {
+          "mechanism": [
+            {
+              "rank": 7,
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00001:d15c61f6"
+            }
+          ],
+          "simulation": [
+            {
+              "rank": 2,
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00003:bc9de562"
+            },
+            {
+              "rank": 3,
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00004:01029c74"
+            }
+          ],
+          "real_experiments": []
+        },
+        "evidence_ids": [
+          "scaffold:5698214a4f6e337e:sc00010:4f33efc1",
+          "scaffold:5698214a4f6e337e:sc00003:bc9de562",
+          "scaffold:5698214a4f6e337e:sc00004:01029c74",
+          "scaffold:5698214a4f6e337e:sc00002:05eb53b2",
+          "scaffold:5698214a4f6e337e:sc00017:d5856b2d"
+        ],
+        "displaced_b2a_evidence": [
+          "scaffold:5698214a4f6e337e:sc00001:d15c61f6"
+        ],
+        "expansion": {
+          "enabled": true,
+          "seed_limit": 3,
+          "per_seed": 2,
+          "limit": 6,
+          "ordering": "anchor_then_context",
+          "context_score": "inherited_anchor_rrf",
+          "seed_candidates": [
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00010:4f33efc1",
+              "score": 0.032266458495966696
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00003:bc9de562",
+              "score": 0.032018442622950824
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00017:d5856b2d",
+              "score": 0.030330882352941176
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00001:d15c61f6",
+              "score": 0.030309988518943745
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00004:01029c74",
+              "score": 0.030309988518943745
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00015:b7a8e524",
+              "score": 0.029116045245077504
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00009:9bef3d59",
+              "score": 0.02878726010616578
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00008:71f0d9fa",
+              "score": 0.02813852813852814
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00016:4bba8c30",
+              "score": 0.02782608695652174
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00002:05eb53b2",
+              "score": 0.026234567901234566
+            },
+            {
+              "chunk_id": "mime:5fc7be35814f52d3:sc00004:f1ee387e",
+              "score": 0.026013513513513515
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00046:de593a76",
+              "score": 0.025062266500622665
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00040:0dd87588",
+              "score": 0.0250384024577573
+            },
+            {
+              "chunk_id": "mime:5fc7be35814f52d3:sc00023:6fd80d47",
+              "score": 0.023910582908885116
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00006:edf2ce2d",
+              "score": 0.023237179487179488
+            },
+            {
+              "chunk_id": "personalization_survey:42a59bf76f5f205b:sc00010:2917bd68",
+              "score": 0.021858576206402296
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00023:3319c9a6",
+              "score": 0.015873015873015872
+            },
+            {
+              "chunk_id": "survey:4d27aeace9008ecf:sc00017:176d6460",
+              "score": 0.015151515151515152
+            },
+            {
+              "chunk_id": "secure_aggregation:73e9d5128c885b82:sc00041:4c42aedf",
+              "score": 0.014705882352941176
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00049:fdf30f92",
+              "score": 0.014492753623188406
+            },
+            {
+              "chunk_id": "secure_aggregation:73e9d5128c885b82:sc00025:d26d9fd9",
+              "score": 0.014285714285714285
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00043:6f14308f",
+              "score": 0.014084507042253521
+            },
+            {
+              "chunk_id": "survey:4d27aeace9008ecf:sc00055:982e5c61",
+              "score": 0.014084507042253521
+            },
+            {
+              "chunk_id": "survey:4d27aeace9008ecf:sc00054:c343da51",
+              "score": 0.013888888888888888
+            },
+            {
+              "chunk_id": "fedavg:b2992067bda5ce59:sc00017:796e860c",
+              "score": 0.0136986301369863
+            },
+            {
+              "chunk_id": "fedopt:2ccd6a71c7cc1f39:sc00029:903306a6",
+              "score": 0.013513513513513514
+            },
+            {
+              "chunk_id": "secure_aggregation:73e9d5128c885b82:sc00021:5b287780",
+              "score": 0.013333333333333334
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00022:92d0cf42",
+              "score": 0.013157894736842105
+            },
+            {
+              "chunk_id": "survey:4d27aeace9008ecf:sc00107:9e9559df",
+              "score": 0.01282051282051282
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00014:890ac373",
+              "score": 0.012658227848101266
+            },
+            {
+              "chunk_id": "fedopt:2ccd6a71c7cc1f39:sc00013:d096ee5b",
+              "score": 0.0125
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00009:83a29ae7",
+              "score": 0.012345679012345678
+            },
+            {
+              "chunk_id": "fedopt:2ccd6a71c7cc1f39:sc00030:12ba9869",
+              "score": 0.012195121951219513
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00047:e87ac188",
+              "score": 0.012195121951219513
+            },
+            {
+              "chunk_id": "personalization_survey:42a59bf76f5f205b:sc00028:d741a491",
+              "score": 0.012048192771084338
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00012:96256687",
+              "score": 0.012048192771084338
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00039:c945de0d",
+              "score": 0.011904761904761904
+            },
+            {
+              "chunk_id": "secure_aggregation:73e9d5128c885b82:sc00026:3c78f27f",
+              "score": 0.011904761904761904
+            },
+            {
+              "chunk_id": "noniid_silos:19d9e88a498e96cd:sc00026:e5d3ab24",
+              "score": 0.011764705882352941
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00011:1cede287",
+              "score": 0.011764705882352941
+            }
+          ],
+          "results": [
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00004:01029c74",
+              "from_seed": "scaffold:5698214a4f6e337e:sc00003:bc9de562",
+              "from_section": "scaffold:5698214a4f6e337e:s002",
+              "section_id": "scaffold:5698214a4f6e337e:s002",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 15.164026090233264,
+              "action": "promoted",
+              "candidate_rank": 3
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00002:05eb53b2",
+              "from_seed": "scaffold:5698214a4f6e337e:sc00003:bc9de562",
+              "from_section": "scaffold:5698214a4f6e337e:s002",
+              "section_id": "scaffold:5698214a4f6e337e:s002",
+              "reason": "adjacent_chunk",
+              "selection": "bm25",
+              "lexical_score": 10.808212365463696,
+              "action": "promoted",
+              "candidate_rank": 4
+            },
+            {
+              "chunk_id": "scaffold:5698214a4f6e337e:sc00015:b7a8e524",
+              "from_seed": "scaffold:5698214a4f6e337e:sc00017:d5856b2d",
+              "from_section": "scaffold:5698214a4f6e337e:s012",
+              "section_id": "scaffold:5698214a4f6e337e:s010",
+              "reason": "parent_section",
+              "selection": "bm25",
+              "lexical_score": 18.744510954790176,
+              "action": "promoted",
+              "candidate_rank": 6
+            }
+          ],
+          "dropped_seed_ids": []
+        },
+        "context_chunks_in_final_evidence": 2,
+        "evidence_count": 5,
+        "evidence_tokens": 2425,
+        "sufficiency": "partial",
+        "seconds": 15.526289124973118,
+        "usage": {
+          "embedding": {
+            "input_tokens": 0,
+            "requests": 0,
+            "estimated_cost_usd": null
+          },
+          "generation": {
+            "input_tokens": 5115,
+            "output_tokens": 1320,
+            "model": "claude-haiku-5-5",
+            "response_id": "msg_011CgKUhS15D8HPzXgYgFbwQ",
+            "estimated_cost_usd": null
+          },
+          "reranking": {}
+        },
+        "local_seed_and_final_replays": "exact"
+      }
+    ],
+    "usage": {
+      "embedding_requests": 0,
+      "embedding_tokens": 0,
+      "generation_responses": 5,
+      "generation_input_tokens": 28038,
+      "generation_output_tokens": 3176,
+      "reranking_requests": 0
+    },
+    "sum_question_seconds": 33.70105691580102,
+    "sum_expansion_and_packing_seconds": 1.217128750984557,
+    "checks": {
+      "exact_b2a_seed_ids_order_scores_all_questions": true,
+      "exact_original_dense_bm25_component_rankings": true,
+      "same_models_prompt_labels_index_and_final_budgets": true,
+      "seed_and_final_pool_replays_exact": true,
+      "all_metrics_recomputed": true,
+      "seed_candidate_metrics_match_b2a_candidate_metrics": true,
+      "candidate_covered_groups_unchanged_per_question": true,
+      "all_context_relations_and_budgets_valid": true,
+      "all_citation_ids_and_source_spans_valid": true,
+      "test_freeze_unchanged": true,
+      "hosted_requests_during_verification": 0
+    },
+    "expansion_totals": {
+      "reasons": {
+        "adjacent_chunk": 13,
+        "parent_section": 5
+      },
+      "actions": {
+        "added": 7,
+        "promoted": 11
+      },
+      "selections": {
+        "bm25": 18
+      },
+      "context_chunks_in_final_evidence": 12,
+      "dropped_seed_count": 7
+    },
+    "answer_review": {
+      "scope": "Post-run assistant review of all five texts against unchanged expected points, with targeted cited-source checks; not independent human grading or exhaustive claim-support scoring.",
+      "rubric": "Required-point relevance: 2 complete core facts, 1 partial, 0 absent; correctness and additional claims assessed separately.",
+      "scores": {
+        "dev01": 2,
+        "dev02": 2,
+        "dev03": 2,
+        "dev04": 2,
+        "dev05": 1
+      },
+      "mean": 1.8,
+      "notes": {
+        "dev01": "Explains local iterations, weighted model averaging and the one-step endpoint. Adds unrequested convergence/performance qualifications and marks partial; inspected FedAvg evidence and excluded FSVRG evidence are explicit.",
+        "dev02": "States both proximal-term benefits.",
+        "dev03": "Explains the corrected direction g_i - c_i + c and Option I/II control-variate updates using other original passages despite losing abstract gold-span credit. Method/algorithm source checked.",
+        "dev04": "Explains both mechanisms with a consistent correction sign despite zero original gold-span credit; cited FedNova summary supports proximal penalty/objective-inconsistency qualification, and SCAFFOLD algorithm supports its update.",
+        "dev05": "Explains correction, simulated data and extended MNIST, but omits real-data protocol factors; the protocol remains absent from the pool. The abstract mechanism passage is displaced from final evidence while other mechanism sources remain. Partial label reflects the missing real-data details."
+      }
+    }
+  },
+  "phase_4_decision": {
+    "engineering_and_development_gate": "complete",
+    "section_chunk_diagnostics": "B2a improves final gold-span diagnostics over B1 on five dev questions; independent quality/generalization gain not established.",
+    "hierarchy_expansion": "Interleaving bounded neighbors reduces final gold-span coverage despite unchanged candidate group coverage. Retain as an experimental configuration; do not enable by default.",
+    "default_configuration": "Unchanged dense-20, reranking off; B2a is the better measured structural configuration.",
+    "no_tuning_or_new_held_out_runs": true,
+    "next_phase": "Evidence-linked knowledge graph (Phase 5), when requested."
+  }
+}

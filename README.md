@@ -2,7 +2,7 @@
 
 **A structure-aware, agentic RAG assistant for federated-learning research papers.**
 
-Status: **Phases 0–2 implemented; 40-paper rebuild and B0/B0-R evaluation complete** (2026-10-18). The corpus has 937 pages and 1,158 Voyage-tokenized chunks. Both modes completed all 20 benchmark questions (5 dev / 15 held-out), with zero execution failures and identical candidate pools within each pair. Held-out gold-span P@5 changed from 0.108 to 0.215, group recall from 0.410 to 0.808, and complete coverage from 5/13 to 10/13; both modes abstained on both unanswerables. Exploratory assistant relevance/source review is recorded separately from these metrics and from independent human grading. See [results](reports/evaluation.md), [machine-readable summary](reports/evaluation_summary.json) and [phase status](reports/phase_status.md). Next: BM25/RRF and then section-aware retrieval.
+Status: **Phases 0–4 complete; section chunking helps dev retrieval, hierarchy expansion remains experimental** (2026-10-23). The 40-paper corpus retains its 1,158 fixed chunks and now has a separate index of 1,514 section chunks with unchanged canonical source IDs. All 67 offline tests pass. See [baseline results](reports/evaluation.md), [hybrid results](reports/hybrid_development.md), [structure report](reports/structure.md) and [phase status](reports/phase_status.md).
 
 FedResearch will answer technical questions using a curated PDF corpus, retrieve supporting passages, and cite the paper, section, and PDF page. It will combine corpus-level search with document hierarchy and a small evidence-linked knowledge graph inspired by BookRAG.
 
@@ -125,7 +125,7 @@ This describes the files that exist now. Each Python module and function has a d
 | [`preprocessing/pdf_parser.py`](src/fedresearch/preprocessing/pdf_parser.py) | Extracts text/layout, fixes column order and records diagnostics | Turns PDFs into canonical evidence with page coordinates |
 | [`preprocessing/cleaning.py`](src/fedresearch/preprocessing/cleaning.py) | Cleans whitespace/hyphenation with a raw-offset map | Lets cleaned chunks still cite the original extracted text |
 | [`preprocessing/sections.py`](src/fedresearch/preprocessing/sections.py) | Detects headings and assigns section/parent links | Provides section citations and the hierarchy used in later retrieval |
-| [`preprocessing/chunking.py`](src/fedresearch/preprocessing/chunking.py) | Creates overlapping fixed windows and retains source spans | Establishes the conventional RAG baseline |
+| [`preprocessing/chunking.py`](src/fedresearch/preprocessing/chunking.py) | Creates fixed or section-bounded windows using the same tokenizer/source spans | Compares chunk policies while preserving canonical source IDs |
 | [`preprocessing/validation.py`](src/fedresearch/preprocessing/validation.py) | Checks source mappings, page ranges and serious warnings | Prevents invalid parses from silently entering an index |
 | [`indexing/pipeline.py`](src/fedresearch/indexing/pipeline.py) | Runs preprocessing/index builds and validates saved versions | Coordinates stages and activates only complete compatible indexes |
 | [`indexing/embeddings.py`](src/fedresearch/indexing/embeddings.py) | Caches vectors and embeds missing chunks in batches | Avoids repeating successful API calls after a rebuild/interruption |
@@ -135,6 +135,7 @@ This describes the files that exist now. Each Python module and function has a d
 | [`retrieval/service.py`](src/fedresearch/retrieval/service.py) | Applies filters, retrieves, deduplicates, optionally reranks and packs evidence | Gives answers, evaluation and the future agent one retrieval implementation |
 | [`retrieval/evidence.py`](src/fedresearch/retrieval/evidence.py) | Removes source overlap and constructs evidence under the final budget | Prevents duplicate passages and retains citation-ready provenance |
 | [`retrieval/fusion.py`](src/fedresearch/retrieval/fusion.py) | Combines dense/BM25 ranks with RRF and stable ties | Merges searches without mixing their different score scales |
+| [`retrieval/hierarchy.py`](src/fedresearch/retrieval/hierarchy.py) | Selects bounded adjacent/parent/child context and records its source/reason | Tests section navigation independently of chunking and reranking |
 | [`retrieval/reranking.py`](src/fedresearch/retrieval/reranking.py) | Calls Atlas `rerank-3` and returns validated indices/scores/usage | Adds optional query-passage ranking without changing source text |
 | [`llm/client.py`](src/fedresearch/llm/client.py) | Wraps the official Claude/Voyage SDKs and records usage | Isolates provider requests, vector checks and sanitized errors |
 | [`llm/answering.py`](src/fedresearch/llm/answering.py) | Retrieves evidence, generates structured claims and checks citations | Produces the fixed baseline answer before agent planning |
@@ -143,7 +144,7 @@ This describes the files that exist now. Each Python module and function has a d
 | [`evaluation/runner.py`](src/fedresearch/evaluation/runner.py) | Runs questions, optionally replays saved dense/hybrid pools, and saves candidate/final metrics, answers, timing and failures | Makes comparisons inspectable and isolates reranking effects |
 | `__init__.py` files in each package | Mark Python packages; the root also defines the version | Support package imports; they contain no pipeline logic |
 
-The answer prompt lives in `src/fedresearch/llm/prompts/answer.md`. Settings live in `configs/default.yaml`. B0/B0-R retain their original 20-candidate settings. `b1_hybrid.yaml` and `b1_hybrid_rerank.yaml` select hybrid retrieval with a 40-candidate cap; `b0_dense_40.yaml` provides a matching dense control. Structural expansion, graph and agent modules follow in later phases.
+The answer prompt lives in `src/fedresearch/llm/prompts/answer.md`. Settings live in `configs/default.yaml`. B0/B0-R retain their original 20-candidate settings. `b1_hybrid.yaml` and `b1_hybrid_rerank.yaml` select hybrid retrieval with a 40-candidate cap; `b0_dense_40.yaml` provides a matching dense control. `b2a_section.yaml` uses section chunks without expansion; `b2_structure.yaml` adds bounded hierarchy expansion over the same index. Graph and agent modules follow in later phases.
 
 Tests are separate from application code:
 
@@ -155,6 +156,7 @@ Tests are separate from application code:
 | `tests/test_reranking_api.py` | Atlas rerank-3 request/response handling, index validation and empty-scope behavior |
 | `tests/test_settings.py` | Default/experiment YAML merging and path resolution |
 | `tests/test_hybrid.py` | BM25 persistence, exact terms, safe queries, filters and deterministic RRF arithmetic |
+| `tests/test_structure.py` | Section source coverage, token limits, heading-only exclusion and bounded parent/child/adjacent navigation |
 | `tests/test_tokenization.py` | Voyage chunk limits, Unicode coverage, exact source spans and no silent tokenizer truncation/padding |
 
 For a quick review, start with `cli.py` → `llm/answering.py` → `retrieval/service.py` → `retrieval/evidence.py`. Read `retrieval/reranking.py` for the optional ranking stage. `indexing/pipeline.py` is the build path; the PDF layout details are isolated under `preprocessing/`.
@@ -175,7 +177,7 @@ These Markdown files are development notes, not runtime dependencies. The README
 
 ## 6. Proposed technology choices
 
-Phase 0–3 local dependencies are locked in `uv.lock` and tested with Python 3.13.1. Hybrid search uses Python's existing SQLite FTS5 support, with no added package. Live model access and baseline measurements are recorded; the 40-paper index and all four B0/B0-R development/test runs are verified. Hybrid's matched dense-40/B1 and exact-pool B1/B1-R development comparisons and targeted assistant review are complete. Independent human grading is not claimed.
+Phase 0–4 local dependencies are locked in `uv.lock` and tested with Python 3.13.1. Hybrid and structural search use Python's existing SQLite FTS5 support, with no added package. Live model access and baseline measurements are recorded; the 40-paper index and all four B0/B0-R development/test runs are verified. Hybrid's matched dense-40/B1 and exact-pool B1/B1-R development comparisons and targeted assistant review are complete. Independent human grading is not claimed.
 
 | Component | Initial choice | Rationale |
 | --- | --- | --- |
@@ -268,7 +270,7 @@ Current B0 settings: 600-token chunks with 100-token overlap, up to 20 Chroma de
 
 Chunk sizes, evidence-text counts and the 1,024-token query limit use the official `voyageai/voyage-4-large` tokenizer, pinned to revision `bb931c2635a93efe400c24741363d8ff61d7bb32`. It runs locally through Hugging Face `tokenizers`; the first use downloads approximately 7 MB into the standard Hugging Face cache (`HF_HOME` can relocate it). No embedding API request or API key is needed for tokenization. Unicode character offsets preserve original-source spans; boundary adjustments can slightly reduce overlap. The 4,000-token budget counts passage text, excluding citation labels and prompt formatting. It is not a Claude context or billing-token count; actual embedding, reranking and generation usage comes from the respective APIs. [Voyage tokenization](https://www.mongodb.com/docs/voyageai/tutorials/tokenization/)
 
-The shared reranking adapter can later follow structure/graph expansion. Defaults remain dense retrieval and `reranking.enabled: false`; `reranking.model` is `rerank-3`. `retrieval.mode` selects `dense` or `hybrid`, `candidate_limit` caps each search and the merged pool, and `rrf_constant` defaults to 60. B0/B0-R use 20; B1/B1-R use 40. Final item/token budgets remain unchanged. Silent truncation is disabled; provider failures are recorded without falling back to a different method.
+The shared reranking adapter follows structural expansion when enabled and can later follow graph expansion. Defaults remain dense retrieval and `reranking.enabled: false`; `reranking.model` is `rerank-3`. `retrieval.mode` selects `dense`, `hybrid` or `structure`, `candidate_limit` caps each search and the merged pool, and `rrf_constant` defaults to 60. B0/B0-R use 20; B1/B1-R/B2a/B2 use 40. Final item/token budgets remain unchanged. Silent truncation is disabled; provider failures are recorded without falling back to a different method.
 
 ## 9. Knowledge graph scope
 
@@ -328,12 +330,13 @@ Do not use retrieval output itself as the gold annotation. Freeze held-out label
 | B0-R | B0 plus rerank-3 on the same deduplicated candidates | Isolates reranking on the dense baseline |
 | B0-40 | Dense retrieval with a 40-candidate cap | Matches B1's candidate budget while preserving original B0 results |
 | B1 | Same chunks plus BM25 and RRF | Benefit of hybrid retrieval |
+| B2a | Hybrid retrieval over section-aware chunks, without expansion | Isolates the chunk-policy change |
 | B2 | Section-aware chunks and bounded hierarchy expansion | Benefit of the structure package beyond B1 |
 | B3 | B2 plus evidence-linked graph expansion | Incremental benefit of the graph |
 | B1-R | B1 plus reranking of its same candidate pool | Incremental benefit of reranking after hybrid retrieval |
 | B3-R | B3 plus reranking of its same candidate pool | Incremental benefit of reranking after structure and graph expansion |
 
-B2 changes both chunk boundaries and hierarchy expansion. Therefore B2 versus B1 tests the combined structure package. If time permits, add **B2a: section-aware chunks without expansion**, then B2 with expansion, to separate those effects.
+B2 changes both chunk boundaries and hierarchy expansion. B2a is implemented to separate them: compare B1/B2a for section chunking, then B2a/B2 for navigation. The latter can reuse identical hybrid seeds through `evaluate --seed-source`; both keep reranking off.
 
 Keep reranking disabled for B0–B3 and B2a. Compare B1-R with B1 and B3-R with B3 separately, using identical pre-reranking candidates, candidate caps, source text, diversity rules, final top-k, and evidence-token budgets within each pair. Reuse saved candidate pools to make this check inspectable. Choose the reranker and tune its settings on development questions only. A B2-R experiment is optional if we need to isolate its effect without graph expansion. Do not attribute a reranked system's gain to hierarchy or the graph without the corresponding controlled comparison.
 
@@ -457,13 +460,32 @@ HF_HOME=work/hf-cache uv run fedresearch evaluate \
 
 Reports save `retrieval_protocol`, macro `summary`, per-question `candidate_metrics` and final evidence metrics. With answers, inspect `answer.trace.retrieval`: `rankings` holds dense/BM25 ranks and scores, `candidates` the fused pool, `deduplicated_candidates` the reranker inputs, and `reranking.results` the new ordering. Candidate metrics use the bounded deduplicated pool; final metrics use selected evidence, both under the same source-span rule. Replay timings exclude source retrieval, so do not compare them directly with fresh-run totals. The separate fresh-search B1-R run and earlier local top-20 diagnostic remain in the report.
 
-Default retrieval stays dense-20 with reranking off. B1/B1-R remain explicit configurations; Phase 4 adds section-aware retrieval while keeping the corpus, models, prompt and final budgets fixed.
+Default retrieval stays dense-20 with reranking off. B1/B1-R remain explicit configurations; the structural modes below keep the corpus, models, prompt and final budgets fixed.
 
-Generated artifacts are in ignored `data/raw`, `data/processed`, and `artifacts`. Indexes include `metadata.sqlite`, Chroma storage and `index.json` under `artifacts/indexes/<index-id>/`; `CURRENT.json` selects a completed version. Embeddings are cached in SQLite. Answer/evaluation traces are saved under `artifacts/runs/<run-id>/`.
+### Phase 4: section chunks and bounded hierarchy
+
+**Mental model:** B2a searches passages that stay inside a section. B2 then follows a few nearby/parent/child links around strong hits, keeping the same 40-candidate cap and five-chunk/4,000-token answer budget. It considers three anchors, selects up to two context chunks per anchor and at most six overall, using local BM25 within a bounded neighborhood. Context follows its anchor and inherits the anchor's score; the trace records its real source and reason.
+
+No PDF reparse or benchmark migration is needed. `indexing.chunk_policy: section` derives **1,514 chunks** from the existing blocks; the original **1,158 fixed chunks** and their active index remain intact. Both modes use the same 600-token cap/100-token within-section overlap target. Heading-only windows stay as tree metadata; short sections retain short passages. Unclassified sections use adjacency only. The section index is built and verified: **636,094 API embedding tokens, 48 requests, 41.27 seconds**. All vectors, BM25 texts and source records match; benchmark spans and the held-out freeze remain valid. B2a development results are verified: P@5 **0.24**, group recall **0.733**, complete coverage **3/5**, versus B1's 0.20/0.533/2-of-5. These are five-question source-span diagnostics; assistant required-point relevance remains 1.8/2. The exact-seed B2 comparison then scores 0.16/0.467/2-of-5: neighbor interleaving displaces annotated evidence at the final five-item limit, with candidate coverage unchanged. Keep expansion experimental and off by default. See [the structure report](reports/structure.md).
+
+Continue the interactive walkthrough one step at a time:
+
+```bash
+# 1. Completed: shared B2a/B2 index, 1,514 chunks. Repeating reuses the completed index.
+HF_HOME=work/hf-cache uv run fedresearch index --config configs/experiments/b2a_section.yaml
+# 2. Completed: section chunking alone, run fca749fc1c0a4a7a81904e33978df1d5.
+HF_HOME=work/hf-cache uv run fedresearch evaluate --config configs/experiments/b2a_section.yaml --split dev --with-answers
+# 3. Completed: exact-seed B2 comparison, run d57813b4495b4ed299f6bb47c07bacb1.
+HF_HOME=work/hf-cache uv run fedresearch evaluate --config configs/experiments/b2_structure.yaml --split dev --with-answers --seed-source artifacts/runs/fca749fc1c0a4a7a81904e33978df1d5/run.json
+```
+
+No new Typer commands were added. `evaluate --seed-source` reuses initial hybrid candidates for hierarchy expansion; `--candidate-source` reuses a final pool for reranking. They are mutually exclusive. Structural traces expose `structural_expansion` with seed IDs, section links, reasons, budgets and dropped seeds. Reports add `seed_candidate_metrics` to distinguish initial coverage from the expanded pool and final evidence; replay timing scopes differ from fresh searches. Models, prompt and labels remain fixed; no new held-out tests run during development.
+
+Generated artifacts are in ignored `data/raw`, `data/processed`, and `artifacts`. Indexes include `metadata.sqlite`, Chroma storage and `index.json` under `artifacts/indexes/<index-id>/`; `CURRENT.json` selects the fixed index and `CURRENT_section.json` the section index; each activates only after a successful build. Embeddings are cached in SQLite. Answer/evaluation traces are saved under `artifacts/runs/<run-id>/`.
 
 Twenty source-span benchmark annotations (5 dev / 15 test) are in `data/benchmarks`. They were prepared independently of retrieval and passed historical canonical validation. The new parse migration is complete: all 26 passages passed canonical validation and the new held-out freeze is valid. Independent human review is still pending; see [evaluation protocol](docs/evaluation.md), including the exact development score calculations. The label freeze hashes the entire `data/benchmarks/test.jsonl` reference-annotation file into `data/benchmarks/frozen.json`; test evaluation rejects a hash mismatch. It does not make files read-only or freeze model weights/settings. Development and held-out span-overlap diagnostics plus an exploratory assistant relevance review are reported; none is an independent human accuracy score.
 
-Later phases add structure/graph modes and a bounded direct-function agent. Those interfaces are not yet implemented. MCP will not be implemented for this project.
+Later phases add graph retrieval and a bounded direct-function agent. Those interfaces are not yet implemented. MCP will not be implemented for this project.
 
 ## 14. Implementation roadmap
 
@@ -475,7 +497,7 @@ The sequence is dependency-driven, without a mandatory day allocation. Detailed 
 | 1 — Preprocessing | Corrected 40-paper parse verified: 937 pages / 955 sections / 1,158 chunks, no diagnostic warnings; all 26 benchmark passages migrated/validated and test labels refrozen |
 | 2 — Baseline | Complete for the 40-paper reference: persistent index, cited B0/B0-R answers on 5 dev / 15 held-out questions, paired candidates, abstention checks and reported limitations; independent human grading remains optional follow-up |
 | 3 — Hybrid retrieval | Complete: BM25/RRF, B1/B1-R and matched dense-40 configs; 55 offline tests, exact-pool dev comparison, usage and assistant answer review verified. Final held-out assessment remains Phase 7 |
-| 4 — Structure | Section chunks and bounded hierarchy expansion; B2/B2a comparisons isolate structural effects |
+| 4 — Structure | Implemented: section chunks, bounded hierarchy, separate B2a/B2 configs and exact seed replay; 67 offline tests/preflight pass. Complete: section index and B2a/B2 exact-seed dev comparison verified. B2a P@5/recall/complete: 0.24/0.733/3-of-5; B2: 0.16/0.467/2-of-5. Hierarchy stays experimental |
 | 5 — Graph | Small evidence-backed graph and bounded traversal; measure benefit before widening scope |
 | 6 — Agent | Bounded direct retrieval tools; separately assess evidence gathering and cited answers |
 | 7 — Evaluation | Frozen comparisons, answer relevance/grounding, cost/latency, actual observed limitations/failures |
@@ -487,7 +509,7 @@ Preserve the baseline, structural retrieval, citations and honest comparisons. K
 
 - [x] Scope is agreed with the user; course rubric and video requirements are excluded.
 - [x] The expanded 40-paper corpus is parsed/indexed with the pinned Voyage tokenizer and documented source versions.
-- [x] Dense and hybrid retrieval can be selected through configuration; structure/graph modes follow later.
+- [x] Dense, hybrid and structural retrieval can be selected through configuration; graph retrieval follows later.
 - [x] Source evidence resolves to paper, section and PDF page. (Canonical/indexed-source and live citation-ID checks pass; semantic claim support still needs review.)
 - [ ] A bounded direct-function agent gathers evidence, produces supported citations and handles insufficient evidence.
 - [ ] Held-out comparisons use fixed inputs/settings and report precision@5, evidence coverage and answer relevance/grounding.

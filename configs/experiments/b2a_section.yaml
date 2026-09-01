@@ -1,0 +1,9 @@
+# Fields here are merged with configs/default.yaml; this file wins on conflicts.
+# Section chunking alone: compare with B1 to measure the chunk-policy change.
+indexing:
+  chunk_policy: section
+retrieval:
+  mode: hybrid
+  candidate_limit: 40
+reranking:
+  enabled: false

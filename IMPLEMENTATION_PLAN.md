@@ -1,6 +1,6 @@
 # FedResearch implementation plan
 
-Status: **Phases 0–3 implemented and development gates verified** (2026-10-22). The unchanged 40-paper / 1,158-chunk dense index has a compatible SQLite FTS5 BM25 sidecar. Dense-40/B1/B1-R dev P@5 is 0.16/0.20/0.28, group recall 0.467/0.533/0.800 and complete coverage 2/5, 2/5, 4/5. The B1/B1-R pair shares every candidate exactly and replay makes zero query embeddings/searches. Targeted assistant answer review stays 1.8/2, with genuine retrieval/answer limitations documented. All 55 offline tests passed; code is unchanged during result verification. Original baseline runs, prompt and frozen labels remain unchanged. Next: Phase 4 section-aware retrieval. See [phase status](reports/phase_status.md), [baseline results](reports/evaluation.md) and [hybrid results](reports/hybrid_development.md).
+Status: **Phases 0–4 complete; hierarchy expansion remains experimental after the measured dev regression** (2026-10-23). Phase 3 was committed as `2dfcd59` with the requested author/committer dates. Section chunks reuse canonical blocks and benchmark source IDs; the fixed index is preserved. B2a/B2 configs, bounded hierarchy and exact hybrid-seed replay are implemented. Local preflight yields 1,514 chunks; all 67 offline tests pass. See [phase status](reports/phase_status.md), [hybrid results](reports/hybrid_development.md) and [structure results](reports/structure.md).
 
 Work through the phases sequentially. Each phase produces a reviewable result, updates the README, and passes its acceptance gate before the next phase begins. There is no mandatory deadline or day allocation; keep the implementation focused on grounded answers and measured retrieval improvements.
 
@@ -90,6 +90,8 @@ Tasks:
 ## Phase 4 — Document hierarchy and structure-aware retrieval
 
 **Purpose:** Recover relevant evidence that spans document structure.
+
+Implementation (2026-10-23): the section policy reuses canonical source IDs, excludes heading-only windows and produces 1,514 chunks. Fixed/section indexes have independent active pointers. B2a uses hybrid search over section chunks; B2 adds bounded one-hop adjacency/parent/child context (three anchors, two per anchor, six overall, total cap 40). Existing final budgets and optional reranking are shared. `evaluate --seed-source` isolates navigation using B2a's exact hybrid seeds; no new Typer commands/packages. All 67 offline tests, source validation and historical-run replay checks pass. The shared section index is built and verified (636,094 API tokens / 48 requests / 41.27 seconds). B2a dev is verified: P@5 0.24, group recall 0.733, complete coverage 3/5; assistant required-point relevance remains 1.8/2. B2 exact-seed evaluation and targeted answer review are complete: P@5 0.16, group recall 0.467, complete coverage 2/5, with unchanged candidate coverage and assistant relevance. Neighbor interleaving displaces gold evidence from final selection. The engineering/development gate is complete; retain expansion as experimental and keep it off by default.
 
 Tasks:
 
@@ -198,10 +200,10 @@ Tasks:
 | First user interface | CLI | Phase 0 |
 | Agent integration | Direct function calls; MCP outside implementation scope | Confirmed |
 | Reranking | Atlas rerank-3 implemented; disabled in core ladder; B0-R/B1-R/B3-R pairs | B0-R and exact-pool B1-R comparisons verified; future graph pairs remain |
-| Optional work | B2a/B2-R before UI polish; table-result records later | After core gates |
+| Optional work | Separate B2-R/context-ordering experiments; table-result records later | After core gates |
 
 ## How we will work phase by phase
 
 For each implementation session: keep the code small and direct, implement only the current phase, reuse library features and shared logic, verify consequential behavior, inspect outputs, and update documentation. Do not start all folders as placeholder code. Add modules when needed and keep shared contracts stable.
 
-Phase 3 code, controlled dev comparisons and targeted assistant review are complete. Next is Phase 4 structure-aware retrieval. Preserve the B0/B1 references and current corpus/models/prompt/final budgets; keep core structural comparisons without reranking and evaluate optional reranking separately. Leave new held-out execution for final evaluation. Independent human review remains optional follow-up, not a claim of the assistant review.
+Phase 4 code and local preflight are implemented after the verified Phase 3 commit. The section index is built and verified. B2a/B2 exact-seed development metrics, expansion traces and targeted answer review are verified; Phase 4 is complete. Section chunking helps annotated dev retrieval; the current expansion ordering reduces final coverage, so retain it only as an explicit experiment. Phase 5 evidence-linked graph is the next planned implementation when requested. Preserve the B0/B1 references and current corpus/models/prompt/final budgets; keep structural comparisons without reranking and assess optional reranking separately. Leave new held-out execution for final evaluation. Independent human review remains optional follow-up, not a claim of the assistant review.

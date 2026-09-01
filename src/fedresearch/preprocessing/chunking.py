@@ -1,4 +1,4 @@
-"""Fixed token windows with original block, section and page provenance."""
+"""Fixed and section-bounded token windows with original source provenance."""
 
 from fedresearch.schemas import Block, Chunk, Section
 from fedresearch.settings import Preprocessing
@@ -78,4 +78,25 @@ def fixed_chunks(
         while next_start < len(offsets) and offsets[next_start][0] < offsets[next_start - 1][1]:
             next_start += 1
         start_token = next_start
+    return chunks
+
+
+def section_chunks(
+    blocks: list[Block], sections: list[Section], parse_id: str, config: Preprocessing
+) -> list[Chunk]:
+    """Split each section into bounded overlapping windows without changing canonical source IDs."""
+    grouped = {section.section_id: [] for section in sections}
+    headings = {block.block_id for block in blocks if block.kind == "heading"}
+    for block in blocks:
+        grouped[block.section_id].append(block)
+    chunks = []
+    for section in sections:
+        for chunk in fixed_chunks(grouped[section.section_id], sections, parse_id, config):
+            if all(span.block_id in headings for span in chunk.spans):
+                continue
+            chunk.policy = "section"
+            chunk.chunk_id = (
+                f"{chunk.paper_id}:{parse_id}:sc{len(chunks):05d}:{digest(chunk.text)[:8]}"
+            )
+            chunks.append(chunk)
     return chunks

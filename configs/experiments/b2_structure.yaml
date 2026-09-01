@@ -1,0 +1,12 @@
+# Fields here are merged with configs/default.yaml; this file wins on conflicts.
+# Same section index as B2a, with bounded one-hop expansion before evidence packing.
+indexing:
+  chunk_policy: section
+retrieval:
+  mode: structure
+  candidate_limit: 40
+  expansion_seeds: 3
+  expansion_per_seed: 2
+  expansion_limit: 6
+reranking:
+  enabled: false
