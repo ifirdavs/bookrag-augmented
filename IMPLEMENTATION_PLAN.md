@@ -1,6 +1,6 @@
 # FedResearch implementation plan
 
-Status: **Phases 0–4 complete; hierarchy expansion remains experimental after the measured dev regression** (2026-10-23). Phase 3 was committed as `2dfcd59` with the requested author/committer dates. Section chunks reuse canonical blocks and benchmark source IDs; the fixed index is preserved. B2a/B2 configs, bounded hierarchy and exact hybrid-seed replay are implemented. Local preflight yields 1,514 chunks; all 67 offline tests pass. See [phase status](reports/phase_status.md), [hybrid results](reports/hybrid_development.md) and [structure results](reports/structure.md).
+Status: **Phases 0–5 complete; final evaluation and delivery remain** (2026-10-26). Phase 3 was committed as `2dfcd59` and Phase 4 as `509beaf` with the requested dates. Section chunks reuse canonical sources; the fixed index is preserved. All 81 offline tests pass. B3/B3-R exact-pool development results are verified (P@5 0.36/0.20, recall 1.0/0.667, complete 5/5 vs 3/5). Keep B3 without reranking as the better measured graph configuration here; hierarchy/graph remain explicit experiments and defaults stay dense-20 with reranking off. See [phase status](reports/phase_status.md), [graph results](reports/graph.md), [hybrid results](reports/hybrid_development.md) and [structure results](reports/structure.md).
 
 Work through the phases sequentially. Each phase produces a reviewable result, updates the README, and passes its acceptance gate before the next phase begins. There is no mandatory deadline or day allocation; keep the implementation focused on grounded answers and measured retrieval improvements.
 
@@ -10,11 +10,11 @@ Work through the phases sequentially. Each phase produces a reviewable result, u
 
 Tasks:
 
-1. Follow the user-agreed scope in `docs/requirements.md`: grounded FL answers, hybrid search, BookRAG-inspired structure, a bounded direct agent and controlled evaluation. No course-rubric, video, MCP or failure-count requirement applies.
+1. Follow the user-agreed scope in `docs/requirements.md`: grounded FL answers, hybrid search, BookRAG-inspired structure and controlled evaluation. No course-rubric, video, MCP or failure-count requirement applies.
 2. Use Claude Haiku 5.5 through the official Anthropic SDK and `ANTHROPIC_API_KEY`. Use Voyage 4 Large at 2048 dimensions for document and query embeddings, with `VOYAGE_API_KEY`. Check access, structured outputs, dimensions, input limits and observed usage before corpus indexing.
 3. Create `pyproject.toml`, the package skeleton, `.gitignore`, `.env.example`, validated settings, and a lockfile. Pin compatible dependency versions after a small connectivity/compatibility check.
 4. Define the current `Paper`, `Block`, `Section`, `Chunk`, `Evidence` and `Answer` contracts. Specify versioning, source spans and PDF page numbering. Add graph contracts in Phase 5 when they are used.
-5. Configure preprocessing, embeddings, retrieval, generation and evaluation. Experiment files merge their fields with `default.yaml`, overriding conflicts without an inheritance mechanism. The optional rerank-3 adapter/settings are implemented and access-verified; add agent settings when that phase is implemented.
+5. Configure preprocessing, embeddings, retrieval, generation and evaluation. Experiment files merge their fields with `default.yaml`, overriding conflicts without an inheritance mechanism. The optional rerank-3 adapter/settings are implemented and access-verified.
 6. Preserve the confirmed 20 papers and add the 20 selected additions for the agreed 40-paper target. Use FedAvg/FedProx/SCAFFOLD as initial representatives and inspect the added layouts. Distinguish surveys from original results. Use the pinned `voyageai/voyage-4-large` tokenizer; revalidate source references after migration and keep the corpus/tokenizer fixed within each controlled comparison.
 7. Record decisions and working assumptions in `docs/decisions.md` and `docs/corpus.md`.
 
@@ -53,7 +53,7 @@ Tasks:
 1. Batch embeddings and cache them by document/chunk/configuration/model identity.
 2. Build persistent dense chunk retrieval and SQLite provenance lookup. Search the full corpus unless an explicit filter is supplied; keep automatic routing disabled.
 3. Implement `RetrievalService` with query, filters, mode, top-k, and evidence budget. Return typed evidence records.
-4. Add a fixed answer pipeline: retrieve, pack evidence, call the hosted model, validate citation IDs, and return answer plus evidence. This is the baseline, before agent planning.
+4. Add a fixed answer pipeline: retrieve, pack evidence, call the hosted model, validate citation IDs, and return answer plus evidence.
 5. Implement a minimal `ask` CLI and an insufficient-evidence response.
 6. Begin manual benchmark annotation from the canonical source blocks. Target 5 development and 15 held-out questions. Include required evidence groups for multi-section and multi-paper questions.
 7. Verify annotation answerability independently of the retriever; freeze the held-out set before tuning enhanced methods.
@@ -111,6 +111,8 @@ Tasks:
 
 ## Phase 5 — Evidence-linked knowledge graph
 
+Complete (2026-10-24), after verified commit `509beaf`: curated graph fallback selected to keep code/model use simple. Typed aliases and 29 source assertions across 14 papers produce 36 canonical nodes; NetworkX persistence, complete source links and bounded one-hop retrieval are verified. Existing SQLite span mappings are reused instead of a separate link store. B2→B3 exact-seed and B3→B3-R exact-pool development comparisons, metrics and targeted answer review are verified. All 81 offline tests pass; result verification made no hosted calls. B3-R regresses final gold-span coverage despite identical complete candidate coverage; preserve that result. Graph curation is non-blind and generalization is untested. See [graph results](reports/graph.md).
+
 **Purpose:** Add semantic navigation only where original evidence supports it.
 
 Tasks:
@@ -131,28 +133,9 @@ Tasks:
 
 **Scope fallback:** A curated evidence-backed graph is acceptable for a small corpus if documented honestly. Reduce relation breadth before sacrificing citation quality or evaluation.
 
-## Phase 6 — Bounded direct-function agent
+## Final evaluation and analysis
 
-**Purpose:** Let the assistant gather missing evidence through bounded direct retrieval calls.
-
-Tasks:
-
-1. Define function-tool schemas around the shared retrieval service. `retrieve_evidence` supplies source passages; `search_papers` is optional metadata discovery. Add section navigation only if required by actual questions.
-2. Implement model tool calling with the selected Claude generation model. Tool handlers call local package functions directly; no MCP server, client or resource implementation is included.
-3. Validate discovery/scope selection, evidence retrieval, argument errors and citation provenance through actual direct tool calls.
-4. Bound tool calls, retries, execution time and evidence tokens. Reuse the same reranking and retrieval settings as fixed evaluation.
-5. Log calls, arguments, evidence IDs, latency and model usage. Return cited answers, partial answers or insufficient evidence according to the gathered sources.
-6. Evaluate comparisons and missing-evidence behavior separately from the fixed B0–B3 experiment ladder. Correct abstention is a successful outcome.
-
-**Outputs:** Direct agent runner/CLI, function schemas, tests and observable execution traces.
-
-**Acceptance gate:** The agent calls the real shared retrieval functions, respects budgets, resolves source citations and terminates with an evidence-grounded result. No MCP wrapper is required or implemented. It may be discussed only as a future extension outside this project.
-
-**README update:** Actual agent commands, supported behavior, limits and separate measurements.
-
-## Phase 7 — Controlled evaluation and analysis
-
-**Purpose:** Measure changes and distinguish retrieval effects from agent behavior.
+**Purpose:** Measure dense, hybrid, structure, graph and reranking effects under controlled conditions.
 
 Tasks:
 
@@ -160,9 +143,8 @@ Tasks:
 2. Run B0–B3, plus B2a if implemented, with reranking disabled through a fixed retrieval-and-answer pipeline. Separately run B1-R/B3-R (and optional B2-R) against their matching unreranked configurations. Reuse identical pre-reranking candidate pools within each pair; hold candidate caps, source text, diversity rules, final top-k, and evidence-token budget constant. Keep the corpus, embedding model, generator, and prompt constant across comparisons. Freeze all choices on development questions before test runs.
 3. Save pre-reranking candidate IDs/spans and original ranks/scores, final evidence IDs/spans and rerank scores/ranks, answer text, citations, configuration, index version, token usage, cost, and latency for each question. Report reranking model/version, input truncation, latency, usage/cost, and failures separately from totals.
 4. Score precision@5, evidence-group recall@5, complete evidence coverage, answer correctness, groundedness, citation support, and abstention. Exclude unanswerable questions from positive-evidence retrieval aggregates.
-5. Evaluate the agent separately using the best supported retrieval configuration. Report additional tool calls, latency, evidence coverage, and failures.
-6. Report paired per-question results and macro averages with sample counts. Separate dense/hybrid, structure, graph, and reranking effects; examine candidate recall before reranking as well as final evidence coverage. Review regressions, not just improvements, and report the latency/cost tradeoff without assuming reranking always helps.
-7. Document any failures actually observed, with evidence, cause, attempted fixes and remaining limitations. Do not fabricate or induce failures or impose a reporting quota. If no failures are observed, state that result for the tested questions without claiming universal correctness. Label post-test changes/reruns explicitly.
+5. Report paired per-question results and macro averages with sample counts. Separate dense/hybrid, structure, graph, and reranking effects; examine candidate recall before reranking as well as final evidence coverage. Review regressions, not just improvements, and report the latency/cost tradeoff without assuming reranking always helps.
+6. Document any failures actually observed, with evidence, cause, attempted fixes and remaining limitations. Do not fabricate or induce failures or impose a reporting quota. If no failures are observed, state that result for the tested questions without claiming universal correctness. Label post-test changes/reruns explicitly.
 
 **Outputs:** Run records, evaluation report, observed-limitations report, updated conclusions.
 
@@ -170,7 +152,7 @@ Tasks:
 
 **README update:** Measured results, supported conclusions, reproducibility instructions, limitations.
 
-## Phase 8 — Documentation and demonstration
+## Delivery — Documentation and demonstration
 
 **Purpose:** Make the project reproducible and easy to assess.
 
@@ -178,7 +160,7 @@ Tasks:
 
 1. Update the README to show what is implemented and remove or label obsolete planned commands.
 2. Verify installation and a complete small-corpus workflow in a clean environment. Keep credentials external and document index rebuilding.
-3. Prepare useful example queries: a method explanation, a comparison and a bounded corpus synthesis. Show source evidence/PDF pages and direct agent calls where applicable. Include an abstention example to demonstrate appropriate evidence limits.
+3. Prepare useful example queries: a method explanation, a comparison and a bounded corpus synthesis. Show original source evidence and PDF pages. Include an abstention example to demonstrate appropriate evidence limits.
 4. Explain the baseline and ablations, strongest result, regression/failure cases, and practical limits.
 5. Provide the reproducible package, setup/configuration guide and evaluation artifacts. Cite research and dependencies consulted. No video or course submission checklist is required.
 6. Merge useful content from temporary `docs/` notes into the README and final reports, rewrite every link, and remove `docs/` as requested. Keep the README Python file guide accurate.
@@ -195,15 +177,14 @@ Tasks:
 | Corpus | 40 papers: existing 20 plus 20 selected additions | Acquired, parsed and indexed |
 | Generation and embeddings | Claude Haiku 5.5; Voyage 4 Large, 2048 dimensions | Index, cited development answers and baseline diagnostics verified live |
 | PDF parser | PyMuPDF, with layout quality gate | Phase 1 |
-| Retrieval storage | Chroma; SQLite sources and FTS5 BM25; planned NetworkX | Dense/lexical persistence verified; graph remains Phase 5 |
+| Retrieval storage | Chroma; SQLite sources and FTS5 BM25; NetworkX JSON | Dense/lexical/graph persistence and source links verified |
 | Benchmark size | 20 questions, 5 dev / 15 test | Phase 2 |
 | First user interface | CLI | Phase 0 |
-| Agent integration | Direct function calls; MCP outside implementation scope | Confirmed |
-| Reranking | Atlas rerank-3 implemented; disabled in core ladder; B0-R/B1-R/B3-R pairs | B0-R and exact-pool B1-R comparisons verified; future graph pairs remain |
+| Reranking | Atlas rerank-3 implemented; disabled in core ladder; B0-R/B1-R/B3-R pairs | All three pairs verified; B3-R reduces final dev coverage, so retain reranking off for the measured graph configuration |
 | Optional work | Separate B2-R/context-ordering experiments; table-result records later | After core gates |
 
 ## How we will work phase by phase
 
 For each implementation session: keep the code small and direct, implement only the current phase, reuse library features and shared logic, verify consequential behavior, inspect outputs, and update documentation. Do not start all folders as placeholder code. Add modules when needed and keep shared contracts stable.
 
-Phase 4 code and local preflight are implemented after the verified Phase 3 commit. The section index is built and verified. B2a/B2 exact-seed development metrics, expansion traces and targeted answer review are verified; Phase 4 is complete. Section chunking helps annotated dev retrieval; the current expansion ordering reduces final coverage, so retain it only as an explicit experiment. Phase 5 evidence-linked graph is the next planned implementation when requested. Preserve the B0/B1 references and current corpus/models/prompt/final budgets; keep structural comparisons without reranking and assess optional reranking separately. Leave new held-out execution for final evaluation. Independent human review remains optional follow-up, not a claim of the assistant review.
+Phases 4 and 5 implementation, source preflight, controlled development metrics/traces and targeted answer reviews are complete. Section chunking helps annotated dev retrieval; hierarchy interleaving reduces final coverage. Curated B3 restores graph-scope coverage, but paired B3-R moves needed passages below the final-five limit. Preserve these measured results and keep experimental modes explicit. Final controlled evaluation and delivery verification are next. Preserve the B0/B1 references and current corpus/models/prompt/final budgets; leave new held-out execution for the final evaluation stage. Independent human review remains optional follow-up, not a claim of the assistant review.

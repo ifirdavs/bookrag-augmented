@@ -1,0 +1,143 @@
+{
+  "created_at": "2026-10-23T17:33:17.427341+00:00",
+  "status": "Phase 5 implemented and locally verified; hosted B3 and B3-R development evaluation pending",
+  "phase_4_commit": {
+    "hash": "509beaf",
+    "author_date": "2026-09-01T18:56:06+05:00",
+    "committer_date": "2026-09-01T18:56:06+05:00"
+  },
+  "graph": {
+    "schema_version": 1,
+    "index_id": "679098a5db4830ef644dd3ad",
+    "chunk_fingerprint": "ae17e836d089268994409192b0cce57ce948096f6f14e2bd16ad472caaf04f4b",
+    "curation_hash": "15930dfb201a9db7cebb2acf6d46ea93a1223050577f75ed7bf839211f7842ba",
+    "extraction": "curated; no model calls",
+    "graph_id": "d3b352f901862f55267baad8",
+    "entities": 36,
+    "relations": 29,
+    "papers": 14,
+    "path": "/Users/firdavsbekismoilov/Local D/EPIC2/Applied GenAI. Course Project/artifacts/indexes/679098a5db4830ef644dd3ad/graph.json",
+    "supporting_spans": "valid"
+  },
+  "curation_review": {
+    "reviewer": "assistant",
+    "scope": "All 29 assertions and all canonical aliases; no independent human grading",
+    "selection": "Original method descriptions and selected experiment passages, curated after development results were known. Benchmark labels are not extraction inputs. This is not a blind curation or comprehensive automatic extractor.",
+    "numeric_performance_relations": false
+  },
+  "entity_types": {
+    "method": 14,
+    "technique": 12,
+    "problem": 6,
+    "dataset": 4
+  },
+  "relation_types": {
+    "uses": 13,
+    "addresses": 11,
+    "evaluated_on": 5
+  },
+  "source_papers": [
+    "ditto",
+    "fedavg",
+    "fedbn",
+    "feddyn",
+    "fedmd",
+    "fednova",
+    "fedopt",
+    "fedprox",
+    "mime",
+    "moon",
+    "multitask",
+    "pfedme",
+    "qffl",
+    "scaffold"
+  ],
+  "checks": {
+    "all_source_quotes_and_versions_valid": true,
+    "every_relation_has_complete_supporting_chunks": true,
+    "persistence_reload": true,
+    "alias_boundaries_and_dataset_names_reviewed": true,
+    "fixed_and_section_index_pointers_unchanged": true,
+    "test_freeze_valid": true,
+    "all_functions_documented": true,
+    "hosted_requests": 0,
+    "benchmark_hashes_unchanged": true
+  },
+  "b3_seed_source": {
+    "run_id": "d57813b4495b4ed299f6bb47c07bacb1",
+    "sha256": "9a3e4277436b083cad46f17cbf84b1cb2f35abf83679282de3e9441fad0942be"
+  },
+  "seed_replay_preflight": [
+    {
+      "question_id": "dev01",
+      "base_candidates": 40,
+      "matched_entities": [
+        "method:fedavg"
+      ],
+      "source_links": "valid",
+      "expansion_budgets": "valid",
+      "scope": "integration smoke check, not a hosted evaluation or quality score"
+    },
+    {
+      "question_id": "dev02",
+      "base_candidates": 40,
+      "matched_entities": [
+        "technique:proximal",
+        "method:fedprox"
+      ],
+      "source_links": "valid",
+      "expansion_budgets": "valid",
+      "scope": "integration smoke check, not a hosted evaluation or quality score"
+    },
+    {
+      "question_id": "dev03",
+      "base_candidates": 40,
+      "matched_entities": [
+        "problem:client_drift",
+        "method:scaffold"
+      ],
+      "source_links": "valid",
+      "expansion_budgets": "valid",
+      "scope": "integration smoke check, not a hosted evaluation or quality score"
+    },
+    {
+      "question_id": "dev04",
+      "base_candidates": 40,
+      "matched_entities": [
+        "method:scaffold",
+        "method:fedprox"
+      ],
+      "source_links": "valid",
+      "expansion_budgets": "valid",
+      "scope": "integration smoke check, not a hosted evaluation or quality score"
+    },
+    {
+      "question_id": "dev05",
+      "base_candidates": 40,
+      "matched_entities": [
+        "method:scaffold"
+      ],
+      "source_links": "valid",
+      "expansion_budgets": "valid",
+      "scope": "integration smoke check, not a hosted evaluation or quality score"
+    }
+  ],
+  "test_status": "81 offline tests passed; Ruff, formatting and whitespace checks passed",
+  "b3_run_id": null,
+  "b3_reranked_run_id": null,
+  "limits": {
+    "hops": 1,
+    "query_entities": 4,
+    "relations": 12,
+    "graph_passages": 6,
+    "candidate_cap": 40,
+    "final_chunks": 5,
+    "final_voyage_tokens": 4000
+  },
+  "limitations": [
+    "Curated relations cover 14 of the 40 papers; other documents remain searchable through hybrid/structural retrieval.",
+    "Alias resolution is literal and does not provide general entity linking or query rewriting.",
+    "Sparse source-span scores and non-blind graph curation require cautious interpretation.",
+    "Graph support promotion can displace other evidence; effectiveness must be measured."
+  ]
+}

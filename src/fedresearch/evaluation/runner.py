@@ -25,9 +25,14 @@ def load_candidate_pools(
     settings = service.settings.model_dump(mode="json")
     settings["reranking"]["enabled"] = False
     if as_seeds:
-        if service.settings.retrieval.mode != "structure" or service.settings.reranking.enabled:
-            raise ValueError("Seed source requires unreranked structure retrieval")
-        settings["retrieval"]["mode"] = "hybrid"
+        if (
+            service.settings.retrieval.mode not in {"structure", "graph"}
+            or service.settings.reranking.enabled
+        ):
+            raise ValueError("Seed source requires unreranked structure or graph retrieval")
+        settings["retrieval"]["mode"] = (
+            "structure" if service.settings.retrieval.mode == "graph" else "hybrid"
+        )
     if (
         source["index_id"] != service.manifest["index_id"]
         or source["dataset_sha256"] != file_sha256(path)
@@ -56,7 +61,7 @@ def load_candidate_pools(
             raise ValueError(
                 "Candidate source must contain matching, unfiltered questions and prompt"
             )
-        if service.settings.retrieval.mode in {"hybrid", "structure"} and (
+        if service.settings.retrieval.mode in {"hybrid", "structure", "graph"} and (
             trace.get("lexical_index")
             != lexical_identity(service.manifest["index_id"], service.manifest["chunk_fingerprint"])
             or trace.get("fusion")
@@ -67,7 +72,7 @@ def load_candidate_pools(
             or set(trace.get("rankings", {})) != {"dense", "bm25"}
         ):
             raise ValueError("Candidate source must use the same lexical index and fusion settings")
-        if trace["mode"] == "structure":
+        if trace["mode"] in {"structure", "graph"}:
             expansion = trace.get("structural_expansion", {})
             expected = {
                 "enabled": True,
@@ -88,8 +93,20 @@ def load_candidate_pools(
                 for name, rows in trace.get("rankings", {}).items()
             },
         }
-        if trace["mode"] == "structure":
+        if trace["mode"] in {"structure", "graph"}:
             pools[question.question_id]["candidate_expansion"] = trace["structural_expansion"]
+        if trace["mode"] == "graph":
+            graph_expansion = trace.get("graph_expansion", {})
+            if (
+                not graph_expansion.get("enabled")
+                or graph_expansion.get("identity") != service.graph_identity
+                or graph_expansion.get("entity_limit") != service.settings.retrieval.graph_entities
+                or graph_expansion.get("edge_limit") != service.settings.retrieval.graph_edges
+                or graph_expansion.get("passage_limit") != service.settings.retrieval.graph_limit
+                or not isinstance(graph_expansion.get("base_candidates"), list)
+            ):
+                raise ValueError("Candidate source must preserve compatible graph expansion")
+            pools[question.question_id]["candidate_graph"] = graph_expansion
     return pools, {"run_id": source["run_id"], "sha256": file_sha256(source_path)}
 
 
@@ -171,6 +188,11 @@ def run_baseline(
                 result["seed_candidate_metrics"] = score_candidate_pool(
                     question, expansion["seed_candidates"], service
                 )
+            graph_expansion = service.last_trace["graph_expansion"]
+            if graph_expansion["enabled"]:
+                result["graph_base_metrics"] = score_candidate_pool(
+                    question, graph_expansion["base_candidates"], service
+                )
             records.append(
                 {
                     "question_id": question.question_id,
@@ -198,7 +220,11 @@ def run_baseline(
         "index_id": service.manifest["index_id"],
         "candidate_source": source if candidate_source is not None else None,
         "seed_source": source if seed_source is not None else None,
-        "timing_scope": "hierarchy expansion/packing and optional generation; excludes replayed seed embedding/dense/BM25 searches"
+        "timing_scope": (
+            "graph expansion/packing and optional generation; excludes replayed embedding/search/hierarchy"
+            if service.settings.retrieval.mode == "graph"
+            else "hierarchy expansion/packing and optional generation; excludes replayed seed embedding/dense/BM25 searches"
+        )
         if seed_source is not None
         else (
             "reranking/packing and optional generation; excludes replayed retrieval/expansion"
@@ -213,7 +239,7 @@ def run_baseline(
             "candidate_limit_per_search": service.settings.retrieval.candidate_limit,
             "merged_candidate_limit": service.settings.retrieval.candidate_limit,
             "rrf_constant": service.settings.retrieval.rrf_constant
-            if service.settings.retrieval.mode in {"hybrid", "structure"}
+            if service.settings.retrieval.mode in {"hybrid", "structure", "graph"}
             else None,
             "reranking_model": service.settings.reranking.model
             if service.settings.reranking.enabled
@@ -225,7 +251,16 @@ def run_baseline(
                 "per_seed": service.settings.retrieval.expansion_per_seed,
                 "limit": service.settings.retrieval.expansion_limit,
             }
-            if service.settings.retrieval.mode == "structure"
+            if service.settings.retrieval.mode in {"structure", "graph"}
+            else None,
+            "graph_expansion": {
+                "identity": service.graph_identity,
+                "hops": 1,
+                "entities": service.settings.retrieval.graph_entities,
+                "edges": service.settings.retrieval.graph_edges,
+                "passages": service.settings.retrieval.graph_limit,
+            }
+            if service.settings.retrieval.mode == "graph"
             else None,
             "candidate_metrics_scope": "after fusion/optional expansion/cap and source deduplication, before reranking/packing",
         },

@@ -1,4 +1,4 @@
-"""CLI entry points for configuration checks, preprocessing, indexing, retrieval, answers and evaluation."""
+"""CLI entry points for configuration, parsing, indexes, the evidence graph, answers and evaluation."""
 
 import json
 import os
@@ -12,6 +12,7 @@ import typer
 from fedresearch import __version__
 from fedresearch.evaluation.dataset import load_dataset, verify_question
 from fedresearch.evaluation.runner import run_baseline
+from fedresearch.graph import build_graph
 from fedresearch.indexing.pipeline import build_index, canonical_store, preprocess
 from fedresearch.llm.answering import answer_question, validate_citations
 from fedresearch.llm.client import ClaudeGenerator, ProviderError, VoyageEmbedder
@@ -22,7 +23,7 @@ from fedresearch.util import atomic_json, file_sha256
 
 app = typer.Typer(
     no_args_is_help=True,
-    help="FedResearch: parse local PDFs, retrieve evidence, optionally rerank and answer with citations.",
+    help="FedResearch: parse PDFs, build indexes/evidence graph, retrieve and answer with citations.",
 )
 benchmark_app = typer.Typer(no_args_is_help=True)
 app.add_typer(benchmark_app, name="benchmark")
@@ -113,6 +114,12 @@ def preprocess_command(
 def index_command(config: Config = CONFIG):
     """Build BM25/dense indexes using fixed or section chunks from canonical processed sources."""
     emit(build_index(load_settings(config)))
+
+
+@app.command("graph-build")
+def graph_build_command(config: Config = CONFIG):
+    """Validate curated source relations and persist the graph beside the selected existing index."""
+    emit(build_graph(load_settings(config)))
 
 
 @app.command("retrieve")
@@ -214,10 +221,13 @@ def evaluate_command(
         typer.Option(help="Replay a saved unreranked run.json for a paired comparison."),
     ] = None,
     seed_source: Annotated[
-        Path | None, typer.Option(help="Reuse B2a hybrid seeds for bounded B2 hierarchy expansion.")
+        Path | None,
+        typer.Option(
+            help="Reuse B2a seeds for B2 hierarchy, or B2 candidates for B3 graph expansion."
+        ),
     ] = None,
 ):
-    """Score retrieval/answers; replay a final pool for reranking or B2a seeds for hierarchy expansion."""
+    """Score retrieval/answers; replay a final pool for reranking or seeds for hierarchy/graph expansion."""
     if split not in {"dev", "test"}:
         raise ValueError("split must be dev or test")
     settings = load_settings(config)

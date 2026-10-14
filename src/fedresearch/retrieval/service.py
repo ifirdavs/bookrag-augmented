@@ -4,12 +4,14 @@ import math
 import time
 
 from fedresearch.corpus.manifest import load_manifest, matching_papers
+from fedresearch.graph import load_graph
 from fedresearch.indexing.lexical_index import LexicalIndex, lexical_identity
 from fedresearch.indexing.pipeline import current_index, source_identity
 from fedresearch.indexing.vector_index import VectorIndex
 from fedresearch.llm.client import Embedder, VoyageEmbedder
 from fedresearch.retrieval.evidence import deduplicate_candidates, pack_evidence
 from fedresearch.retrieval.fusion import reciprocal_rank_fusion
+from fedresearch.retrieval.graph import expand_graph
 from fedresearch.retrieval.hierarchy import expand_hierarchy
 from fedresearch.retrieval.reranking import VoyageReranker
 from fedresearch.settings import Settings
@@ -48,6 +50,15 @@ class RetrievalService:
         self.provider = provider
         self.reranker = reranker
         self.last_trace = {}
+        self.graph, self.graph_identity = None, None
+        if settings.retrieval.mode == "graph":
+            try:
+                self.graph, self.graph_identity = load_graph(
+                    settings, folder, self.manifest, self.store
+                )
+            except Exception:
+                self.store.close()
+                raise
 
     def close(self):
         """Helper to retrieval cleanup: close the source metadata store."""
@@ -78,21 +89,39 @@ class RetrievalService:
         candidate_rankings: dict | None = None,
         seed_pool: list[tuple[str, float]] | None = None,
         candidate_expansion: dict | None = None,
+        candidate_graph: dict | None = None,
     ):
-        """Retrieve dense/hybrid/structural evidence or replay pools, then optionally rerank and pack."""
+        """Retrieve dense/hybrid/hierarchy/graph evidence or replay pools, then optionally rerank and pack."""
         started = time.perf_counter()
         config = self.settings.retrieval
         mode = config.mode if mode is None else mode
-        if mode not in {"dense", "hybrid", "structure"}:
-            raise ValueError("Supported retrieval modes: dense, hybrid, structure")
-        if mode == "structure" and self.settings.indexing.chunk_policy != "section":
+        if mode not in {"dense", "hybrid", "structure", "graph"}:
+            raise ValueError("Supported retrieval modes: dense, hybrid, structure, graph")
+        if mode in {"structure", "graph"} and self.settings.indexing.chunk_policy != "section":
             raise ValueError("Structure retrieval requires section chunks")
-        if seed_pool is not None and (candidate_pool is not None or mode != "structure"):
+        if seed_pool is not None and (
+            candidate_pool is not None or mode not in {"structure", "graph"}
+        ):
             raise ValueError(
                 "Seed replay requires structure mode and cannot replay a final pool too"
             )
-        if mode == "structure" and candidate_pool is not None and candidate_expansion is None:
+        if (
+            mode in {"structure", "graph"}
+            and candidate_pool is not None
+            and candidate_expansion is None
+        ):
             raise ValueError("Final structural replay requires the saved expansion trace")
+        if mode == "graph":
+            if self.graph is None:
+                self.graph, self.graph_identity = load_graph(
+                    self.settings, self.folder, self.manifest, self.store
+                )
+            if candidate_pool is not None and (
+                not candidate_graph or candidate_graph.get("identity") != self.graph_identity
+            ):
+                raise ValueError("Final graph replay requires a matching graph expansion trace")
+            if seed_pool is not None and not candidate_expansion:
+                raise ValueError("Graph seed replay requires B2's structural expansion trace")
         top_k = config.top_k if top_k is None else top_k
         if not 1 <= top_k <= min(20, config.candidate_limit):
             raise ValueError("top_k must be within the configured candidate limit and 1–20")
@@ -129,7 +158,7 @@ class RetrievalService:
         rankings = candidate_rankings or {}
         replay_pool = candidate_pool if candidate_pool is not None else seed_pool
         if (
-            mode in {"hybrid", "structure"}
+            mode in {"hybrid", "structure", "graph"}
             and candidate_pool is None
             and allowed
             and chunk_ids != []
@@ -158,7 +187,7 @@ class RetrievalService:
             vector = self.provider.embed([query], input_type="query")[0]
             ranked = self.vectors.query(vector, config.candidate_limit, allowed, chunk_ids)
             rankings = {"dense": ranked}
-            if mode in {"hybrid", "structure"}:
+            if mode in {"hybrid", "structure", "graph"}:
                 rankings["bm25"] = self.lexical.query(
                     query, config.candidate_limit, allowed, chunk_ids
                 )
@@ -166,9 +195,25 @@ class RetrievalService:
                     list(rankings.values()), config.candidate_limit, config.rrf_constant
                 )
         expansion = candidate_expansion or {"enabled": False}
-        if mode == "structure" and candidate_pool is None:
+        if (
+            mode in {"structure", "graph"}
+            and candidate_pool is None
+            and not (mode == "graph" and seed_pool is not None)
+        ):
             ranked, expansion = expand_hierarchy(
                 query, ranked, self.store, self.lexical, config, chunk_ids
+            )
+        graph_expansion = candidate_graph or {"enabled": False}
+        if mode == "graph" and candidate_pool is None:
+            ranked, graph_expansion = expand_graph(
+                query,
+                ranked,
+                self.graph,
+                self.graph_identity,
+                self.lexical,
+                config,
+                allowed,
+                chunk_ids,
             )
         candidates = [{"chunk_id": identifier, "score": score} for identifier, score in ranked]
         ranked, duplicates = deduplicate_candidates(ranked, self.store)
@@ -220,13 +265,14 @@ class RetrievalService:
                 for name, rows in rankings.items()
             },
             "structural_expansion": expansion,
+            "graph_expansion": graph_expansion,
             "fusion": {"constant": config.rrf_constant, "candidate_limit": config.candidate_limit}
-            if mode in {"hybrid", "structure"}
+            if mode in {"hybrid", "structure", "graph"}
             else None,
             "lexical_index": lexical_identity(
                 self.manifest["index_id"], self.manifest["chunk_fingerprint"]
             )
-            if mode in {"hybrid", "structure"}
+            if mode in {"hybrid", "structure", "graph"}
             else None,
             "candidate_source": "saved_pool"
             if candidate_pool is not None
@@ -236,7 +282,7 @@ class RetrievalService:
             if reranking["enabled"]
             else (
                 "rrf_anchor_score"
-                if mode == "structure"
+                if mode in {"structure", "graph"}
                 else ("rrf" if mode == "hybrid" else "cosine_similarity")
             ),
             "embedding_usage": usage,

@@ -262,7 +262,7 @@ def test_index_reload_filters_budgets_and_empty_scope(corpus):
         with pytest.raises(ValueError, match="Unknown paper"):
             service.retrieve("updates", paper_ids=["missing"])
         with pytest.raises(ValueError, match="Supported retrieval modes"):
-            service.retrieve("updates", mode="graph")
+            service.retrieve("updates", mode="unknown")
         with pytest.raises(ValueError, match="top_k"):
             service.retrieve("updates", top_k=0)
         with pytest.raises(ValueError, match="empty"):

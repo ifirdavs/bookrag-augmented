@@ -122,7 +122,7 @@ class Evidence(StrictModel):
     spans: list[SourceSpan]
     text: str
     token_count: int
-    origin: Literal["dense", "hybrid", "structure"] = "dense"
+    origin: Literal["dense", "hybrid", "structure", "graph"] = "dense"
     score: float
 
 

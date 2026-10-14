@@ -58,7 +58,7 @@ class Generation(StrictModel):
 
 
 class Retrieval(StrictModel):
-    mode: Literal["dense", "hybrid", "structure"] = "dense"
+    mode: Literal["dense", "hybrid", "structure", "graph"] = "dense"
     candidate_limit: int = Field(default=20, ge=1, le=100)
     rrf_constant: int = Field(default=60, ge=1)
     top_k: int = Field(default=5, ge=1, le=20)
@@ -68,6 +68,9 @@ class Retrieval(StrictModel):
     expansion_seeds: int = Field(default=3, ge=1, le=10)
     expansion_per_seed: int = Field(default=2, ge=1, le=3)
     expansion_limit: int = Field(default=6, ge=1, le=20)
+    graph_entities: int = Field(default=4, ge=1, le=10)
+    graph_edges: int = Field(default=12, ge=1, le=40)
+    graph_limit: int = Field(default=6, ge=1, le=20)
 
 
 class Reranking(StrictModel):
@@ -94,14 +97,19 @@ class Settings(StrictModel):
 
     @model_validator(mode="after")
     def budgets(self):
-        """Helper to configuration validation: keep the final top-k within the candidate budget."""
+        """Helper to configuration validation: enforce final-evidence, hierarchy and graph budgets."""
         if self.retrieval.top_k > self.retrieval.candidate_limit:
             raise ValueError("top_k must not exceed candidate_limit")
-        if self.retrieval.mode == "structure":
+        if self.retrieval.mode in {"structure", "graph"}:
             if self.indexing.chunk_policy != "section":
                 raise ValueError("Structure retrieval requires section chunks")
             if self.retrieval.expansion_limit >= self.retrieval.candidate_limit:
                 raise ValueError("expansion_limit must be smaller than candidate_limit")
+        if (
+            self.retrieval.mode == "graph"
+            and self.retrieval.graph_limit >= self.retrieval.candidate_limit
+        ):
+            raise ValueError("graph_limit must be smaller than candidate_limit")
         return self
 
 

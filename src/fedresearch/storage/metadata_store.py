@@ -3,7 +3,7 @@
 import sqlite3
 from pathlib import Path
 
-from fedresearch.schemas import Block, Chunk, Paper, ParsedDocument, Section
+from fedresearch.schemas import Block, Chunk, Paper, ParsedDocument, Section, SourceSpan
 
 
 class MetadataStore:
@@ -124,3 +124,14 @@ class MetadataStore:
             table: self.db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             for table in ("papers", "sections", "blocks", "chunks")
         }
+
+    def supporting_chunks(self, span: SourceSpan) -> list[str]:
+        """Helper to graph links: find indexed chunks containing the entire original evidence span."""
+        return [
+            row[0]
+            for row in self.db.execute(
+                "SELECT DISTINCT chunk_id FROM chunk_spans "
+                "WHERE block_id = ? AND start <= ? AND end >= ? ORDER BY chunk_id",
+                (span.block_id, span.start, span.end),
+            )
+        ]

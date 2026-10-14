@@ -1,0 +1,12 @@
+# Fields here are merged with configs/default.yaml; this file wins on conflicts.
+# B2 plus one-hop evidence graph navigation; reranking is assessed separately.
+indexing:
+  chunk_policy: section
+retrieval:
+  mode: graph
+  candidate_limit: 40
+  graph_entities: 4
+  graph_edges: 12
+  graph_limit: 6
+reranking:
+  enabled: false

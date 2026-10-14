@@ -1,0 +1,680 @@
+{
+  "schema_version": 1,
+  "review": "assistant_source_review",
+  "entities": [
+    {
+      "entity_id": "method:fedavg",
+      "kind": "method",
+      "label": "FedAvg",
+      "aliases": [
+        "Federated Averaging",
+        "FederatedAveraging"
+      ]
+    },
+    {
+      "entity_id": "method:fedprox",
+      "kind": "method",
+      "label": "FedProx",
+      "aliases": [
+        "FedProx"
+      ]
+    },
+    {
+      "entity_id": "method:scaffold",
+      "kind": "method",
+      "label": "SCAFFOLD",
+      "aliases": [
+        "Stochastic Controlled Averaging"
+      ]
+    },
+    {
+      "entity_id": "method:fednova",
+      "kind": "method",
+      "label": "FedNova",
+      "aliases": [
+        "FedNova"
+      ]
+    },
+    {
+      "entity_id": "method:feddyn",
+      "kind": "method",
+      "label": "FedDyn",
+      "aliases": [
+        "FedDyn"
+      ]
+    },
+    {
+      "entity_id": "method:mime",
+      "kind": "method",
+      "label": "Mime",
+      "aliases": [
+        "Mime"
+      ]
+    },
+    {
+      "entity_id": "method:fedbn",
+      "kind": "method",
+      "label": "FedBN",
+      "aliases": [
+        "FedBN"
+      ]
+    },
+    {
+      "entity_id": "method:moon",
+      "kind": "method",
+      "label": "MOON",
+      "aliases": [
+        "MOON"
+      ]
+    },
+    {
+      "entity_id": "method:pfedme",
+      "kind": "method",
+      "label": "pFedMe",
+      "aliases": [
+        "pFedMe"
+      ]
+    },
+    {
+      "entity_id": "method:ditto",
+      "kind": "method",
+      "label": "Ditto",
+      "aliases": [
+        "Ditto"
+      ]
+    },
+    {
+      "entity_id": "method:mocha",
+      "kind": "method",
+      "label": "MOCHA",
+      "aliases": [
+        "MOCHA"
+      ]
+    },
+    {
+      "entity_id": "method:qffl",
+      "kind": "method",
+      "label": "q-FFL",
+      "aliases": [
+        "q-Fair Federated Learning",
+        "qFFL"
+      ]
+    },
+    {
+      "entity_id": "method:fedmd",
+      "kind": "method",
+      "label": "FedMD",
+      "aliases": [
+        "FedMD"
+      ]
+    },
+    {
+      "entity_id": "method:fedopt",
+      "kind": "method",
+      "label": "FedOpt",
+      "aliases": [
+        "Federated Adaptive Optimization"
+      ]
+    },
+    {
+      "entity_id": "technique:local_sgd",
+      "kind": "technique",
+      "label": "Local SGD",
+      "aliases": [
+        "local stochastic gradient descent"
+      ]
+    },
+    {
+      "entity_id": "technique:averaging",
+      "kind": "technique",
+      "label": "Model averaging",
+      "aliases": [
+        "iterative model averaging"
+      ]
+    },
+    {
+      "entity_id": "technique:proximal",
+      "kind": "technique",
+      "label": "Proximal term",
+      "aliases": [
+        "proximal penalty",
+        "proximal regularization"
+      ]
+    },
+    {
+      "entity_id": "technique:control_variates",
+      "kind": "technique",
+      "label": "Control variates",
+      "aliases": [
+        "control-variate",
+        "control variate"
+      ]
+    },
+    {
+      "entity_id": "technique:normalized_averaging",
+      "kind": "technique",
+      "label": "Normalized averaging",
+      "aliases": [
+        "Normalized averaging"
+      ]
+    },
+    {
+      "entity_id": "technique:dynamic_regularization",
+      "kind": "technique",
+      "label": "Dynamic regularization",
+      "aliases": [
+        "dynamic regularizer"
+      ]
+    },
+    {
+      "entity_id": "technique:contrastive",
+      "kind": "technique",
+      "label": "Model contrastive learning",
+      "aliases": [
+        "model-contrastive learning",
+        "modelcontrastive"
+      ]
+    },
+    {
+      "entity_id": "technique:local_bn",
+      "kind": "technique",
+      "label": "Local batch normalization",
+      "aliases": [
+        "local BN"
+      ]
+    },
+    {
+      "entity_id": "technique:moreau",
+      "kind": "technique",
+      "label": "Moreau envelopes",
+      "aliases": [
+        "Moreau envelopes"
+      ]
+    },
+    {
+      "entity_id": "technique:multitask",
+      "kind": "technique",
+      "label": "Multi-task learning",
+      "aliases": [
+        "multitask learning"
+      ]
+    },
+    {
+      "entity_id": "technique:distillation",
+      "kind": "technique",
+      "label": "Knowledge distillation",
+      "aliases": [
+        "Knowledge distillation"
+      ]
+    },
+    {
+      "entity_id": "technique:adaptive_optimization",
+      "kind": "technique",
+      "label": "Adaptive optimization",
+      "aliases": [
+        "adaptive optimizers"
+      ]
+    },
+    {
+      "entity_id": "problem:statistical_heterogeneity",
+      "kind": "problem",
+      "label": "Statistical heterogeneity",
+      "aliases": [
+        "non-IID data",
+        "non-identically distributed data"
+      ]
+    },
+    {
+      "entity_id": "problem:systems_heterogeneity",
+      "kind": "problem",
+      "label": "Systems heterogeneity",
+      "aliases": [
+        "system heterogeneity"
+      ]
+    },
+    {
+      "entity_id": "problem:client_drift",
+      "kind": "problem",
+      "label": "Client drift",
+      "aliases": [
+        "Client drift"
+      ]
+    },
+    {
+      "entity_id": "problem:feature_shift",
+      "kind": "problem",
+      "label": "Feature shift",
+      "aliases": [
+        "Feature shift"
+      ]
+    },
+    {
+      "entity_id": "problem:personalization",
+      "kind": "problem",
+      "label": "Personalization",
+      "aliases": [
+        "personalized federated learning",
+        "personalized FL"
+      ]
+    },
+    {
+      "entity_id": "problem:fairness",
+      "kind": "problem",
+      "label": "Fairness",
+      "aliases": [
+        "Fairness"
+      ]
+    },
+    {
+      "entity_id": "dataset:emnist",
+      "kind": "dataset",
+      "label": "EMNIST",
+      "aliases": [
+        "extended MNIST"
+      ]
+    },
+    {
+      "entity_id": "dataset:mnist",
+      "kind": "dataset",
+      "label": "MNIST",
+      "aliases": [
+        "MNIST"
+      ]
+    },
+    {
+      "entity_id": "dataset:cifar10",
+      "kind": "dataset",
+      "label": "CIFAR-10",
+      "aliases": [
+        "CIFAR10"
+      ]
+    },
+    {
+      "entity_id": "dataset:femnist",
+      "kind": "dataset",
+      "label": "FEMNIST",
+      "aliases": [
+        "FEMNIST"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "subject": "method:fedavg",
+      "predicate": "uses",
+      "object": "technique:local_sgd",
+      "paper_id": "fedavg",
+      "document_version": "arxiv:1602.05629v4",
+      "span": {
+        "block_id": "fedavg:b2992067bda5ce59:p001:b00014",
+        "start": 324,
+        "end": 504
+      },
+      "quote": "More concretely, we introduce the\nFederatedAveraging algorithm, which combines lo-\ncal stochastic gradient descent (SGD) on each client with\na server that performs model averaging."
+    },
+    {
+      "subject": "method:fedavg",
+      "predicate": "uses",
+      "object": "technique:averaging",
+      "paper_id": "fedavg",
+      "document_version": "arxiv:1602.05629v4",
+      "span": {
+        "block_id": "fedavg:b2992067bda5ce59:p001:b00014",
+        "start": 324,
+        "end": 504
+      },
+      "quote": "More concretely, we introduce the\nFederatedAveraging algorithm, which combines lo-\ncal stochastic gradient descent (SGD) on each client with\na server that performs model averaging."
+    },
+    {
+      "subject": "method:fedprox",
+      "predicate": "addresses",
+      "object": "problem:statistical_heterogeneity",
+      "paper_id": "fedprox",
+      "document_version": "arxiv:1812.06127v5",
+      "span": {
+        "block_id": "fedprox:fd612a0a197f95f3:p001:b00003",
+        "start": 0,
+        "end": 449
+      },
+      "quote": "Federated Learning is a distributed learning paradigm with two key challenges that differentiate it from traditional\ndistributed optimization: (1) signiﬁcant variability in terms of the systems characteristics on each device in\nthe network (systems heterogeneity), and (2) non-identically distributed data across the network (statistical\nheterogeneity). In this work, we introduce a framework, FedProx, to tackle heterogeneity in federated networks."
+    },
+    {
+      "subject": "method:fedprox",
+      "predicate": "addresses",
+      "object": "problem:systems_heterogeneity",
+      "paper_id": "fedprox",
+      "document_version": "arxiv:1812.06127v5",
+      "span": {
+        "block_id": "fedprox:fd612a0a197f95f3:p001:b00003",
+        "start": 0,
+        "end": 449
+      },
+      "quote": "Federated Learning is a distributed learning paradigm with two key challenges that differentiate it from traditional\ndistributed optimization: (1) signiﬁcant variability in terms of the systems characteristics on each device in\nthe network (systems heterogeneity), and (2) non-identically distributed data across the network (statistical\nheterogeneity). In this work, we introduce a framework, FedProx, to tackle heterogeneity in federated networks."
+    },
+    {
+      "subject": "method:fedprox",
+      "predicate": "uses",
+      "object": "technique:proximal",
+      "paper_id": "fedprox",
+      "document_version": "arxiv:1812.06127v5",
+      "span": {
+        "block_id": "fedprox:fd612a0a197f95f3:p004:b00090",
+        "start": 0,
+        "end": 401
+      },
+      "quote": "The proximal term is beneﬁcial in two aspects: (1) It ad-\ndresses the issue of statistical heterogeneity by restricting\nthe local updates to be closer to the initial (global) model\nwithout any need to manually set the number of local epochs.\n(2) It allows for safely incorporating variable amounts of\nlocal work resulting from systems heterogeneity. We sum-\nmarize the steps of FedProx in Algorithm 2."
+    },
+    {
+      "subject": "method:scaffold",
+      "predicate": "uses",
+      "object": "technique:control_variates",
+      "paper_id": "scaffold",
+      "document_version": "arxiv:1910.06378v4",
+      "span": {
+        "block_id": "scaffold:5698214a4f6e337e:p001:b00006",
+        "start": 0,
+        "end": 159
+      },
+      "quote": "As a solution, we propose a new algorithm\n(SCAFFOLD) which uses control variates (vari-\nance reduction) to correct for the ‘client-drift’ in\nits local updates."
+    },
+    {
+      "subject": "method:scaffold",
+      "predicate": "addresses",
+      "object": "problem:client_drift",
+      "paper_id": "scaffold",
+      "document_version": "arxiv:1910.06378v4",
+      "span": {
+        "block_id": "scaffold:5698214a4f6e337e:p001:b00006",
+        "start": 0,
+        "end": 159
+      },
+      "quote": "As a solution, we propose a new algorithm\n(SCAFFOLD) which uses control variates (vari-\nance reduction) to correct for the ‘client-drift’ in\nits local updates."
+    },
+    {
+      "subject": "method:scaffold",
+      "predicate": "evaluated_on",
+      "object": "dataset:emnist",
+      "paper_id": "scaffold",
+      "document_version": "arxiv:1910.06378v4",
+      "span": {
+        "block_id": "scaffold:5698214a4f6e337e:p007:b00431",
+        "start": 0,
+        "end": 192
+      },
+      "quote": "We run extensive experiments on the EMNIST dataset to\nmeasure the interplay between the algorithm, number of\nepochs (local updates), number of participating clients, and\nthe client similarity."
+    },
+    {
+      "subject": "method:mime",
+      "predicate": "uses",
+      "object": "technique:control_variates",
+      "paper_id": "mime",
+      "document_version": "arxiv:2008.03606v2",
+      "span": {
+        "block_id": "mime:5fc7be35814f52d3:p001:b00016",
+        "start": 547,
+        "end": 667
+      },
+      "quote": "MIME uses a\ncombination of control-variates and server-level optimizer state (e.g. momentum)\nat every client-update step"
+    },
+    {
+      "subject": "method:mime",
+      "predicate": "addresses",
+      "object": "problem:client_drift",
+      "paper_id": "mime",
+      "document_version": "arxiv:2008.03606v2",
+      "span": {
+        "block_id": "mime:5fc7be35814f52d3:p001:b00016",
+        "start": 0,
+        "end": 546
+      },
+      "quote": "Federated learning (FL) is a challenging setting for optimization due to the het-\nerogeneity of the data across different clients which can cause a client drift phe-\nnomenon. In fact, designing an algorithm for FL that is uniformly better than\nsimple centralized training has been a major open problem thus far. In this work,\nwe propose a general algorithmic framework, MIME, which i) mitigates client\ndrift and ii) adapts an arbitrary centralized optimization algorithm such as mo-\nmentum and Adam to the cross-device federated learning setting."
+    },
+    {
+      "subject": "method:fednova",
+      "predicate": "uses",
+      "object": "technique:normalized_averaging",
+      "paper_id": "fednova",
+      "document_version": "arxiv:2007.07481v1",
+      "span": {
+        "block_id": "fednova:6ef1f1ca1271dde7:p002:b00036",
+        "start": 0,
+        "end": 149
+      },
+      "quote": "Proposed Normalized Averaging Method FedNova. In Section 5 we propose FedNova, a method\nthat correctly normalizes local model updates when averaging."
+    },
+    {
+      "subject": "method:feddyn",
+      "predicate": "uses",
+      "object": "technique:dynamic_regularization",
+      "paper_id": "feddyn",
+      "document_version": "arxiv:2111.04263v2",
+      "span": {
+        "block_id": "feddyn:13d483b91e3d49a8:p001:b00010",
+        "start": 500,
+        "end": 764
+      },
+      "quote": "Different from recent prior works, that either attempt inexact\nminimization or utilize devices for parallelizing gradient computation, we propose\na dynamic regularizer for each device at each round, so that in the limit the global\nand device solutions are aligned."
+    },
+    {
+      "subject": "method:moon",
+      "predicate": "uses",
+      "object": "technique:contrastive",
+      "paper_id": "moon",
+      "document_version": "arxiv:2103.16257v1",
+      "span": {
+        "block_id": "moon:7b614394e5712d5b:p001:b00008",
+        "start": 415,
+        "end": 546
+      },
+      "quote": "In this paper, we propose MOON: model-\ncontrastive federated learning.\nMOON is a simple and\neffective federated learning framework."
+    },
+    {
+      "subject": "method:moon",
+      "predicate": "addresses",
+      "object": "problem:statistical_heterogeneity",
+      "paper_id": "moon",
+      "document_version": "arxiv:2103.16257v1",
+      "span": {
+        "block_id": "moon:7b614394e5712d5b:p001:b00008",
+        "start": 0,
+        "end": 546
+      },
+      "quote": "Federated learning enables multiple parties to collab-\noratively train a machine learning model without commu-\nnicating their local data.\nA key challenge in federated\nlearning is to handle the heterogeneity of local data dis-\ntribution across parties. Although many studies have been\nproposed to address this challenge, we ﬁnd that they fail\nto achieve high performance in image datasets with deep\nlearning models. In this paper, we propose MOON: model-\ncontrastive federated learning.\nMOON is a simple and\neffective federated learning framework."
+    },
+    {
+      "subject": "method:moon",
+      "predicate": "evaluated_on",
+      "object": "dataset:cifar10",
+      "paper_id": "moon",
+      "document_version": "arxiv:2103.16257v1",
+      "span": {
+        "block_id": "moon:7b614394e5712d5b:p001:b00019",
+        "start": 0,
+        "end": 263
+      },
+      "quote": "We conduct extensive experiments to evaluate the ef-\nfectiveness of MOON. MOON signiﬁcantly outperforms\nthe other state-of-the-art federated learning algorithms [34,\n28, 22] on various image classiﬁcation datasets including\nCIFAR-10, CIFAR-100, and Tiny-Imagenet."
+    },
+    {
+      "subject": "method:fedbn",
+      "predicate": "uses",
+      "object": "technique:local_bn",
+      "paper_id": "fedbn",
+      "document_version": "arxiv:2102.07623v2",
+      "span": {
+        "block_id": "fedbn:a2ff51da5823a66f:p001:b00009",
+        "start": 925,
+        "end": 1097
+      },
+      "quote": "In this work, we propose an effective method\nthat uses local batch normalization to alleviate the feature shift before averaging\nmodels. The resulting scheme, called FedBN,"
+    },
+    {
+      "subject": "method:fedbn",
+      "predicate": "addresses",
+      "object": "problem:feature_shift",
+      "paper_id": "fedbn",
+      "document_version": "arxiv:2102.07623v2",
+      "span": {
+        "block_id": "fedbn:a2ff51da5823a66f:p001:b00009",
+        "start": 925,
+        "end": 1097
+      },
+      "quote": "In this work, we propose an effective method\nthat uses local batch normalization to alleviate the feature shift before averaging\nmodels. The resulting scheme, called FedBN,"
+    },
+    {
+      "subject": "method:pfedme",
+      "predicate": "uses",
+      "object": "technique:moreau",
+      "paper_id": "pfedme",
+      "document_version": "arxiv:2006.08848v3",
+      "span": {
+        "block_id": "pfedme:5608f0780ba4ee04:p001:b00007",
+        "start": 364,
+        "end": 631
+      },
+      "quote": "To address this, we propose an algorithm for\npersonalized FL (pFedMe) using Moreau envelopes as clients’ regularized loss\nfunctions, which help decouple personalized model optimization from the global\nmodel learning in a bi-level problem stylized for personalized FL."
+    },
+    {
+      "subject": "method:pfedme",
+      "predicate": "addresses",
+      "object": "problem:personalization",
+      "paper_id": "pfedme",
+      "document_version": "arxiv:2006.08848v3",
+      "span": {
+        "block_id": "pfedme:5608f0780ba4ee04:p001:b00007",
+        "start": 364,
+        "end": 631
+      },
+      "quote": "To address this, we propose an algorithm for\npersonalized FL (pFedMe) using Moreau envelopes as clients’ regularized loss\nfunctions, which help decouple personalized model optimization from the global\nmodel learning in a bi-level problem stylized for personalized FL."
+    },
+    {
+      "subject": "method:ditto",
+      "predicate": "addresses",
+      "object": "problem:fairness",
+      "paper_id": "ditto",
+      "document_version": "arxiv:2012.04221v3",
+      "span": {
+        "block_id": "ditto:e4f60c5885ecf9d9:p001:b00003",
+        "start": 308,
+        "end": 533
+      },
+      "quote": "To address these constraints, we pro-\npose employing a simple, general framework for\npersonalized federated learning, Ditto, that can\ninherently provide fairness and robustness bene-\nﬁts, and develop a scalable solver for it."
+    },
+    {
+      "subject": "method:ditto",
+      "predicate": "addresses",
+      "object": "problem:personalization",
+      "paper_id": "ditto",
+      "document_version": "arxiv:2012.04221v3",
+      "span": {
+        "block_id": "ditto:e4f60c5885ecf9d9:p001:b00003",
+        "start": 308,
+        "end": 533
+      },
+      "quote": "To address these constraints, we pro-\npose employing a simple, general framework for\npersonalized federated learning, Ditto, that can\ninherently provide fairness and robustness bene-\nﬁts, and develop a scalable solver for it."
+    },
+    {
+      "subject": "method:mocha",
+      "predicate": "uses",
+      "object": "technique:multitask",
+      "paper_id": "multitask",
+      "document_version": "arxiv:1705.10467v2",
+      "span": {
+        "block_id": "multitask:c8fc1189bf7e2d89:p001:b00011",
+        "start": 0,
+        "end": 364
+      },
+      "quote": "Federated learning poses new statistical and systems challenges in training machine\nlearning models over distributed networks of devices. In this work, we show that\nmulti-task learning is naturally suited to handle the statistical challenges of this\nsetting, and propose a novel systems-aware optimization method, MOCHA, that is\nrobust to practical systems issues."
+    },
+    {
+      "subject": "method:mocha",
+      "predicate": "addresses",
+      "object": "problem:systems_heterogeneity",
+      "paper_id": "multitask",
+      "document_version": "arxiv:1705.10467v2",
+      "span": {
+        "block_id": "multitask:c8fc1189bf7e2d89:p001:b00011",
+        "start": 0,
+        "end": 517
+      },
+      "quote": "Federated learning poses new statistical and systems challenges in training machine\nlearning models over distributed networks of devices. In this work, we show that\nmulti-task learning is naturally suited to handle the statistical challenges of this\nsetting, and propose a novel systems-aware optimization method, MOCHA, that is\nrobust to practical systems issues. Our method and theory for the ﬁrst time consider\nissues of high communication cost, stragglers, and fault tolerance for distributed\nmulti-task learning."
+    },
+    {
+      "subject": "method:qffl",
+      "predicate": "addresses",
+      "object": "problem:fairness",
+      "paper_id": "qffl",
+      "document_version": "arxiv:1905.10497v2",
+      "span": {
+        "block_id": "qffl:3f602da3a08945c0:p001:b00008",
+        "start": 226,
+        "end": 494
+      },
+      "quote": "In this work,\nwe propose q-Fair Federated Learning (q-FFL), a novel optimization objective\ninspired by fair resource allocation in wireless networks that encourages a more fair\n(speciﬁcally, a more uniform) accuracy distribution across devices in federated net-\nworks."
+    },
+    {
+      "subject": "method:fedmd",
+      "predicate": "uses",
+      "object": "technique:distillation",
+      "paper_id": "fedmd",
+      "document_version": "arxiv:1910.03581v1",
+      "span": {
+        "block_id": "fedmd:4bfb4efae020aa7d:p001:b00006",
+        "start": 450,
+        "end": 665
+      },
+      "quote": "In this work, we use transfer learning\nand knowledge distillation to develop a universal framework that enables federated\nlearning when each agent owns not only their private data, but also uniquely\ndesigned models."
+    },
+    {
+      "subject": "method:fedmd",
+      "predicate": "evaluated_on",
+      "object": "dataset:mnist",
+      "paper_id": "fedmd",
+      "document_version": "arxiv:1910.03581v1",
+      "span": {
+        "block_id": "fedmd:4bfb4efae020aa7d:p001:b00006",
+        "start": 666,
+        "end": 811
+      },
+      "quote": "We test our framework on the MNIST/FEMNIST dataset and the\nCIFAR10/CIFAR100 dataset and observe fast improvement across all participating\nmodels."
+    },
+    {
+      "subject": "method:fedmd",
+      "predicate": "evaluated_on",
+      "object": "dataset:femnist",
+      "paper_id": "fedmd",
+      "document_version": "arxiv:1910.03581v1",
+      "span": {
+        "block_id": "fedmd:4bfb4efae020aa7d:p001:b00006",
+        "start": 666,
+        "end": 811
+      },
+      "quote": "We test our framework on the MNIST/FEMNIST dataset and the\nCIFAR10/CIFAR100 dataset and observe fast improvement across all participating\nmodels."
+    },
+    {
+      "subject": "method:fedmd",
+      "predicate": "evaluated_on",
+      "object": "dataset:cifar10",
+      "paper_id": "fedmd",
+      "document_version": "arxiv:1910.03581v1",
+      "span": {
+        "block_id": "fedmd:4bfb4efae020aa7d:p001:b00006",
+        "start": 666,
+        "end": 811
+      },
+      "quote": "We test our framework on the MNIST/FEMNIST dataset and the\nCIFAR10/CIFAR100 dataset and observe fast improvement across all participating\nmodels."
+    },
+    {
+      "subject": "method:fedopt",
+      "predicate": "uses",
+      "object": "technique:adaptive_optimization",
+      "paper_id": "fedopt",
+      "document_version": "arxiv:2003.00295v5",
+      "span": {
+        "block_id": "fedopt:2ccd6a71c7cc1f39:p001:b00005",
+        "start": 448,
+        "end": 652
+      },
+      "quote": "In this work, we propose fed-\nerated versions of adaptive optimizers, including ADAGRAD, ADAM, and YOGI,\nand analyze their convergence in the presence of heterogeneous data for general\nnonconvex settings."
+    }
+  ]
+}
