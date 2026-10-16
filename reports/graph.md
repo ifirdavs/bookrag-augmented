@@ -1,5 +1,7 @@
 # Phase 5 — Evidence-linked graph
 
+Delivery cleanup (2026-10-26): older development/exploratory raw runs were pruned; their measurements and IDs below remain historical records. Only the nine final test runs are retained locally and in [the portable archive](final_runs.zip). Historical source-path commands below describe those earlier sessions; current reproduction instructions use newly generated source-run IDs in the [README](../README.md#reproduce-a-controlled-comparison).
+
 Historical development-stage report. All subsequent test comparisons and the assistant claim/citation audit are now complete in the separate [final evaluation report](final_evaluation.md); development measurements below remain unchanged.
 
 Phase 5 complete: implementation, B3 exact-seed development comparison and paired B3-R comparison verified, 2026-10-24. Phase 4 was committed first as `509beaf`, with both author and committer dates `2026-09-01T18:56:06+05:00`.

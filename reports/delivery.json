@@ -1,0 +1,85 @@
+{
+  "recorded_date": "2026-10-26",
+  "evaluation_commit": "75ffd4c",
+  "requested_commit_author_date": "2026-10-16T23:40:51+05:00",
+  "requested_commit_committer_date": "2026-10-16T23:40:51+05:00",
+  "environment": {
+    "os": "Darwin",
+    "architecture": "arm64",
+    "python": "3.13.1",
+    "uv": "0.11.24",
+    "sqlite": "3.45.3",
+    "locked_packages_installed": 109
+  },
+  "runtime_code_changed": false,
+  "evaluation_inputs_changed": false,
+  "new_typer_commands": [],
+  "run_cleanup": {
+    "kept": 9,
+    "removed": 14,
+    "kept_ids": {
+      "B0": "81929cc51c1e4dbfb8c747a7547bc416",
+      "B0-R": "31200136e531442788c1df1c0a21b052",
+      "B0-40": "dd189c43bc14486db8b105f45b897a59",
+      "B1": "da9ec3ae738341c4813504c8ab368ba2",
+      "B1-R": "b34ebe340a77429889e77c38d18137c1",
+      "B2a": "ad00dc64d3ad44daab5cf8d85259ae93",
+      "B2": "9ae5b228cdc64c93bb4df7a2a0990701",
+      "B3": "84a5e1f05cf348aeaa58709714a72b3f",
+      "B3-R": "771cbc25fe9d4c9ca09a71b888f24d96"
+    },
+    "archive": "reports/final_runs.zip",
+    "archive_sha256": "43564e6d087f41eb5da3f1f2546b8270984692391e29942eb6e0fcf18de98d6c"
+  },
+  "checks": {
+    "built_wheel_and_source_distribution": true,
+    "wheel_prompt_resource_present": true,
+    "wheel_imports_from_site_packages": true,
+    "separate_locked_environment": true,
+    "canonical_papers_rebuilt": 40,
+    "rebuilt_canonical_documents_identical": true,
+    "benchmark_questions_valid": {
+      "dev": 5,
+      "test": 15
+    },
+    "fixed_and_section_index_reuse": true,
+    "graph_rebuilt": {
+      "entities": 36,
+      "relations": 29,
+      "papers": 14
+    },
+    "saved_evidence_lists_reproduced_without_hosted_calls": 135,
+    "local_corpus_pdf_checksums_valid": 40,
+    "frozen_input_hashes_valid": 55,
+    "raw_run_hashes_valid": 9,
+    "assistant_audit_counts_valid": {
+      "answers": 135,
+      "claims": 279,
+      "citation_pairs": 517
+    },
+    "live_smoke": "passed; initial temporary harness persistence failed and was repaired",
+    "offline_tests": 84,
+    "ruff_lint": "passed",
+    "ruff_format": "passed",
+    "whitespace": "passed",
+    "local_markdown_links_valid": 126,
+    "final_sdist_contents_valid": true,
+    "final_wheel_reinstalled": true
+  },
+  "limits": [
+    "Only macOS arm64/Python 3.13.1 was delivery-tested.",
+    "PDFs and the pinned tokenizer cache were reused as inputs; all 40 remote endpoints were not redownloaded.",
+    "Full indexes reused existing vectors; one-paper live indexing exercised real embedding generation.",
+    "Historical test outputs and assistant semantic judgments are preserved rather than regenerated or independently human-graded."
+  ],
+  "delivery_smoke_path": "reports/delivery_smoke.json",
+  "delivery_smoke_sha256": "1948a33733c52cd86a19db980cbef1399722638cfb005b53c4024373920e9cbd",
+  "packaging_fix": {
+    "file": ".gitignore",
+    "change": "Anchor the .env.example exception to the project root",
+    "reason": "An unanchored exception included a nested example file from the ignored delivery checkout in the source distribution"
+  },
+  "temporary_checkout_removed": true,
+  "requested_delivery_commit_author_date": "2026-10-17T01:23:43+05:00",
+  "requested_delivery_commit_committer_date": "2026-10-17T01:23:43+05:00"
+}

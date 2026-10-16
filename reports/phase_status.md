@@ -2,7 +2,7 @@
 
 Updated 2026-10-26 (Asia/Tashkent).
 
-**Phases 0–5 and final evaluation are complete. Delivery remains.** The 40-paper corpus has persistent fixed/section indexes, dense and BM25/RRF retrieval, optional reranking, bounded hierarchy, evidence-linked graph navigation and cited answers. All nine frozen test arms are verified: 135 question executions, zero execution failures, with both negatives correctly abstaining in every mode. No source/configuration/label changes were made during final evaluation.
+**Implementation, final evaluation and delivery are complete.** The 40-paper corpus has persistent fixed/section indexes, dense and BM25/RRF retrieval, optional reranking, bounded hierarchy, evidence-linked graph navigation and cited answers. All nine frozen test arms are verified: 135 question executions, zero execution failures, with both negatives correctly abstaining in every mode. No source/configuration/label changes were made during final evaluation.
 
 | Phase | Verified result | Remaining work |
 | --- | --- | --- |
@@ -13,7 +13,7 @@ Updated 2026-10-26 (Asia/Tashkent).
 | 4 — Structure | 1,514 section chunks derived from canonical sources, bounded hierarchy and exact-seed B2a/B2 comparisons | Expansion stays experimental after measured regressions |
 | 5 — Graph | 36 entities / 29 curated assertions / 14 papers, NetworkX persistence, original source links and bounded one-hop traversal; B3/B3-R dev/test checks complete | Non-blind curation and narrow coverage remain interpretation limits |
 | Final evaluation | Nine verified test arms; all 279 structured claims and 517 citation links reviewed by the assistant; paired comparisons, usage, timing scopes and observed limitations reported | Complete with assistant judgments; independent human scores are not claimed |
-| Delivery | Existing setup instructions, file guide and evaluation artifacts available | Clean-environment setup/workflow check, useful example queries, consolidation and removal of temporary `docs/` notes |
+| Delivery | Locked install and built wheel verified in isolation; full canonical reparse/source/evidence checks, one-paper live cited answer/abstention, four examples, acquisition/integrity helpers and selected-run archive delivered; temporary docs removed | Complete; other platforms and fresh downloads from every remote endpoint remain untested |
 
 ## Final measured comparison
 
@@ -42,8 +42,8 @@ See the [final report](final_evaluation.md), [structured results](final_evaluati
 - Fixed index: `6f8ba8be92dcc84b51a5514f`; section index: `679098a5db4830ef644dd3ad`; graph: `d3b352f901862f55267baad8`. Active fixed/section pointers remain independent.
 - Models: `claude-haiku-5-5`, 2,048-dimensional `voyage-4-large`, optional `rerank-3`. Pinned Voyage tokenizer revision: `bb931c2635a93efe400c24741363d8ff61d7bb32`.
 - All 55 frozen input hashes, nine run hashes, canonical source references, final evidence budgets and recomputed scores validate. Exact replay pairing, BM25/RRF, hierarchy/graph expansion and reranker mappings reproduce locally with hosted calls blocked.
-- All 81 offline tests, Ruff lint/format and whitespace checks pass. PyMuPDF emits upstream SWIG deprecation warnings under Python 3.13.
+- All 84 offline tests, Ruff lint/format and whitespace checks pass. The additional three tests protect download byte identity and cleanup; application code is unchanged. PyMuPDF emits upstream SWIG deprecation warnings under Python 3.13.
 - Costs remain null while pricing is unconfigured. Replay timing excludes upstream work and is not full-pipeline latency. No hosted calls were made during result verification/source auditing.
-- No new Typer commands were introduced for final evaluation. No commit, push or publication was requested for this stage.
+- No new Typer commands were introduced for final evaluation. The user committed evaluation as `75ffd4c` with author/committer date `2026-10-16T23:40:51+05:00`; delivery changes are separate from that evaluation commit. The temporary delivery checkout was removed after verification; built packages and recorded evidence remain available.
 
-Historical commits remain `2dfcd59` (Phase 3), `509beaf` (Phase 4) and `cb95b06` (Phase 5), created by the user with the requested dates. Source modules/functions have descriptions; README Section 5 explains the Python files. Course/video requirements and MCP implementation remain excluded. Temporary `docs/` notes will be consolidated and removed during delivery, as requested.
+Historical commits remain `2dfcd59` (Phase 3), `509beaf` (Phase 4) and `cb95b06` (Phase 5), created by the user with the requested dates. Source modules/functions have descriptions; README Section 5 explains the Python files. Course/video requirements and MCP implementation remain excluded. Temporary `docs/` notes were consolidated into the README/reports and removed. The nine final test runs remain in `artifacts/runs/` and the portable archive; 14 older runs were pruned. See [delivery checks](delivery.md) and [examples](examples.md).

@@ -1,5 +1,7 @@
 # Phase 4 — Section-aware retrieval
 
+Delivery cleanup (2026-10-26): older development/exploratory raw runs were pruned; their measurements and IDs below remain historical records. Only the nine final test runs are retained locally and in [the portable archive](final_runs.zip). Historical source-path commands below describe those earlier sessions; current reproduction instructions use newly generated source-run IDs in the [README](../README.md#reproduce-a-controlled-comparison).
+
 Historical development-stage report. All subsequent test comparisons and the assistant claim/citation audit are now complete in the separate [final evaluation report](final_evaluation.md); development measurements below remain unchanged.
 
 Phase 4 implementation and development-evaluation gate complete, 2026-10-23. Section chunking improves annotated retrieval over B1 on these five development questions; bounded hierarchy interleaving then regresses final gold-span coverage. Keep expansion experimental. Phase 3 was committed first as `2dfcd59`, with both author and committer dates `2026-08-31T20:17:37+05:00` as requested. Phase 4 was subsequently committed as `509beaf` with author/committer dates `2026-09-01T18:56:06+05:00`, before Phase 5 edits.

@@ -1,6 +1,6 @@
 # FedResearch implementation plan
 
-Status: **Phases 0–5 and final evaluation complete; delivery remains** (2026-10-26). Phase 3 was committed as `2dfcd59` and Phase 4 as `509beaf` with the requested dates. Section chunks reuse canonical sources; the fixed index is preserved. All 81 offline tests pass. B3/B3-R exact-pool development results are verified (P@5 0.36/0.20, recall 1.0/0.667, complete 5/5 vs 3/5). Keep B3 without reranking as the better measured graph configuration here; hierarchy/graph remain explicit experiments and defaults stay dense-20 with reranking off. See [phase status](reports/phase_status.md), [graph results](reports/graph.md), [hybrid results](reports/hybrid_development.md) and [structure results](reports/structure.md).
+Status: **Implementation, final evaluation and delivery complete** (2026-10-26). Phase 3 was committed as `2dfcd59` and Phase 4 as `509beaf` with the requested dates. Section chunks reuse canonical sources; the fixed index is preserved. All 84 offline tests pass, including three delivery integrity checks. B3/B3-R exact-pool development results are verified (P@5 0.36/0.20, recall 1.0/0.667, complete 5/5 vs 3/5). Keep B3 without reranking as the better measured graph configuration here; hierarchy/graph remain explicit experiments and defaults stay dense-20 with reranking off. See [phase status](reports/phase_status.md), [graph results](reports/graph.md), [hybrid results](reports/hybrid_development.md) and [structure results](reports/structure.md).
 
 Work through the phases sequentially. Each phase produces a reviewable result, updates the README, and passes its acceptance gate before the next phase begins. There is no mandatory deadline or day allocation; keep the implementation focused on grounded answers and measured retrieval improvements.
 
@@ -10,13 +10,13 @@ Work through the phases sequentially. Each phase produces a reviewable result, u
 
 Tasks:
 
-1. Follow the user-agreed scope in `docs/requirements.md`: grounded FL answers, hybrid search, BookRAG-inspired structure and controlled evaluation. No course-rubric, video, MCP or failure-count requirement applies.
+1. Follow the user-agreed scope in `README.md`: grounded FL answers, hybrid search, BookRAG-inspired structure and controlled evaluation. No course-rubric, video, MCP or failure-count requirement applies.
 2. Use Claude Haiku 5.5 through the official Anthropic SDK and `ANTHROPIC_API_KEY`. Use Voyage 4 Large at 2048 dimensions for document and query embeddings, with `VOYAGE_API_KEY`. Check access, structured outputs, dimensions, input limits and observed usage before corpus indexing.
 3. Create `pyproject.toml`, the package skeleton, `.gitignore`, `.env.example`, validated settings, and a lockfile. Pin compatible dependency versions after a small connectivity/compatibility check.
 4. Define the current `Paper`, `Block`, `Section`, `Chunk`, `Evidence` and `Answer` contracts. Specify versioning, source spans and PDF page numbering. Add graph contracts in Phase 5 when they are used.
 5. Configure preprocessing, embeddings, retrieval, generation and evaluation. Experiment files merge their fields with `default.yaml`, overriding conflicts without an inheritance mechanism. The optional rerank-3 adapter/settings are implemented and access-verified.
 6. Preserve the confirmed 20 papers and add the 20 selected additions for the agreed 40-paper target. Use FedAvg/FedProx/SCAFFOLD as initial representatives and inspect the added layouts. Distinguish surveys from original results. Use the pinned `voyageai/voyage-4-large` tokenizer; revalidate source references after migration and keep the corpus/tokenizer fixed within each controlled comparison.
-7. Record decisions and working assumptions in `docs/decisions.md` and `docs/corpus.md`.
+7. Record decisions and working assumptions in `README.md` and `reports/preprocessing.md`.
 
 **Outputs:** Package foundation, configuration draft, schema definitions, initial manifest, agreed scope checklist.
 
@@ -156,22 +156,78 @@ Tasks:
 
 ## Delivery — Documentation and demonstration
 
-**Purpose:** Make the project reproducible and easy to assess.
+**Status:** Complete, 2026-10-26, after evaluation commit `75ffd4c`. The checklist below records the delivered scope; results and commands are in [delivery verification](reports/delivery.md). This stage makes the existing project reproducible and understandable. Keep runtime changes limited to defects found by the delivery checks; preserve experiment settings, defaults, labels and original results.
 
-Tasks:
+### 1. Establish the delivery contents
 
-1. Update the README to show what is implemented and remove or label obsolete planned commands.
-2. Verify installation and a complete small-corpus workflow in a clean environment. Keep credentials external and document index rebuilding.
-3. Prepare useful example queries: a method explanation, a comparison and a bounded corpus synthesis. Show original source evidence and PDF pages. Include an abstention example to demonstrate appropriate evidence limits.
-4. Explain the baseline and ablations, strongest result, regression/failure cases, and practical limits.
-5. Provide the reproducible package, setup/configuration guide and evaluation artifacts. Cite research and dependencies consulted. No video or course submission checklist is required.
-6. Merge useful content from temporary `docs/` notes into the README and final reports, rewrite every link, and remove `docs/` as requested. Keep the README Python file guide accurate.
+Inventory what a fresh checkout contains versus what currently exists only in ignored local folders. The initial gaps were the corpus acquisition helper in `work/`, raw evaluation runs under `artifacts/`, and README instructions mixing historical walkthroughs with current setup. These are resolved by the tracked helpers, selected-run archive and rewritten README.
 
-**Outputs:** Final README, example-query guide, evaluation report, reproducible repository.
+**Deliver:** A short permanent file/artifact map in the README. Source/configuration, the lockfile, seven-field corpus manifest, curated graph inputs, benchmark/freeze and final reports are required. Generated PDFs, indexes and caches remain rebuildable local data. Preserve the existing working environment and active indexes while checking a separate copy.
 
-**Acceptance gate:** A new reader can obtain the corpus, configure credentials, build indexes, run a cited answer, and reproduce the documented evaluation procedure.
+**Done when:** Every documented setup or verification command has its required tracked input or an explicit acquisition step; it does not depend on an undocumented `work/` file or this machine's absolute paths.
 
-## Decisions to finalize in the next session
+### 2. Make corpus acquisition and evaluation evidence portable
+
+- Provide one small standalone `scripts/download_corpus.py` helper for all 40 pinned papers, using the existing manifest and minimal direct-PDF mappings where needed. Keep downloading outside the application CLI, as agreed. Reuse checksum-matching PDFs, reject mismatches, and provide a clear manual-download fallback when a publisher blocks access. Preserve the manifest and its seven fields.
+- Preserve the nine selected original test `run.json` files in a compact delivery archive with a SHA-256 inventory and extraction instructions. Include their texts/candidate traces needed to inspect the reported comparisons; retain original bytes/hashes. Keep unrelated exploratory runs, credentials, caches and indexes outside that archive. Inspect its contents before declaring it ready.
+- Provide a small standalone local verification script only for the delivered report/archive checks: hashes, retrieval arithmetic and source-audit counts. Reuse existing metric code; no new evaluation framework or automatic semantic judge. Preserve the original frozen protocol even if a delivery fix later changes code, and record such changes separately.
+- Document rebuilding fixed and section indexes, then the graph, and the dependency order for paired evaluation sources. Move historical tokenizer-migration instructions out of the current quickstart. A fresh build of the unchanged corpus should validate existing source references without refreezing labels.
+
+**Deliver:** Minimal acquisition/verification helpers, the selected-run archive and exact rebuild/replay instructions. Check paper/source and dependency references while consolidating; distinguish original results from surveys and BookRAG-inspired features from the fuller paper's algorithms.
+
+**Done when:** Corpus checksums and archive run hashes verify, final metrics/counts can be recomputed locally, and current instructions no longer require ignored development helpers. Access-blocked or changed publisher files are reported rather than accepted under new hashes.
+
+### 3. Verify installation and a clean workflow
+
+Use an isolated environment and temporary checkout/output paths, preserving the current `.venv`, `.env`, indexes and results.
+
+1. Install the locked dependencies using the tested Python version; build/install the package and check its CLI and packaged answer-prompt resource. Document that configs, corpus metadata and graph inputs are supplied by the project checkout.
+2. Run `doctor`, the existing offline tests and lint/format checks. Explain the first tokenizer download, optional `HF_HOME` cache location and which commands call hosted providers.
+3. Validate corpus acquisition and canonical preprocessing/source references. Check fixed/section index reload and local graph build/reload against the preserved corpus. Record exact commands, environment versions and results.
+4. Exercise a small temporary-corpus workflow through preprocessing, dense/lexical indexing, retrieval and one cited answer; use temporary manifest/config paths without changing the full corpus or benchmark. Existing generated-PDF tests cover deterministic offline behavior; a separately labeled live smoke check verifies real providers.
+5. Use the full existing indexes for structural/graph demonstrations. Full fresh index rebuilding remains a documented reproducibility route; repeating all corpus embeddings and all nine hosted evaluations is not a delivery requirement.
+
+**Deliver:** A concise verification record appended to the final report, including any genuine setup defect and its fix. A runtime fix receives the relevant regression checks and a clear distinction from the historical evaluated code; do not silently overwrite measured results.
+
+**Done when:** The documented installation and small workflow work outside the current development environment, citations resolve to original PDF pages, and the existing full-corpus artifacts still validate. Any untested platform/provider step remains explicit.
+
+### 4. Prepare a short CLI demonstration
+
+Create `reports/examples.md` with four copyable examples: a method explanation, a two-paper comparison, a bounded synthesis across named papers, and an unsupported question demonstrating abstention. For each, show its configuration/command, a concise saved answer, original paper/page evidence and trace location. Start from verified saved runs so the examples are inspectable without API calls. Preserve partial answers and actual limitations; do not rewrite outputs to appear more complete.
+
+Explain the shared pipeline briefly: retrieve candidates → optional hierarchy/graph expansion → deduplicate → optional rerank → pack five passages → generate cited claims. Use one saved trace to show the expansion reasons and original evidence. Summarize the strongest retrieval result and an observed regression, with replay timing and assistant-review limitations.
+
+**Deliver:** A short, source-linked demonstration guide. Two fresh checks—a positive cited answer and an unsupported question—are enough for a live demonstration, with usage saved separately from benchmark results. No video, UI or new Typer command is planned.
+
+**Done when:** A reader can run the examples, inspect sources/pages and understand a partial answer or abstention without reading implementation code.
+
+### 5. Consolidate documentation and remove docs/
+
+Rewrite the README around current use: short overview → installation/credentials → acquire/preprocess/build → choose a retrieval configuration → ask/inspect citations → results/limitations → Python file guide. Replace obsolete future tense and development-session commands; fix the currently stale top-level status. Keep long historical measurements in their existing reports.
+
+| Temporary file | Permanent destination |
+| --- | --- |
+| former `requirements.md` | README scope and exclusions |
+| former `decisions.md` | README architecture/configuration and limitations |
+| former `models.md` | README provider/key/tokenizer setup; historical usage stays in reports |
+| former `corpus.md` | README acquisition/manifest summary and `reports/preprocessing.md` |
+| former `evaluation.md` | README reproduction overview and `reports/final_evaluation.md` scoring/freeze/audit rules |
+
+Update all incoming links and the README Python file guide, verify the migrated content, then remove `docs/`. Retain the implementation plan as project history and the final reports as evidence; avoid replacing temporary notes with another duplicate documentation tree.
+
+**Done when:** There are no broken links, current commands do not reference deleted/ignored helpers, and all useful permanent notes remain accessible after `docs/` is removed.
+
+### 6. Final delivery gate
+
+Run the existing offline suite, benchmark source/freeze validation, index/graph identity checks, selected-run/report integrity checks, Ruff lint/format and whitespace/link checks. Confirm that credentials remain external, experiment inputs/results are preserved and the README definition of done matches actual checks. Record the supported/tested environment and any remaining limitations.
+
+**Final outputs:** Current README and file guide; minimal corpus/reproducibility helpers; source-linked example guide; preserved final reports/audit and selected-run archive; clean-workflow verification record. A fresh reader can acquire the pinned corpus, configure credentials, build/reload indexes, run a cited answer and follow the measured comparison procedure.
+
+### Interactive work and user participation
+
+Documentation, artifact preparation and local verification can proceed autonomously. When installation/downloads or hosted smoke checks need the user's terminal, provide one complete command in a question card, state its expected output and model-call scope, and inspect the result before the next dependent step. Use the existing credentials; no new account or model is planned. Plan the small live workload before running it. Commit only when the user requests it, with their chosen date if supplied.
+
+## Recorded decisions and optional future work
 
 | Decision | Working default | Resolve during |
 | --- | --- | --- |
@@ -189,4 +245,4 @@ Tasks:
 
 For each implementation session: keep the code small and direct, implement only the current phase, reuse library features and shared logic, verify consequential behavior, inspect outputs, and update documentation. Do not start all folders as placeholder code. Add modules when needed and keep shared contracts stable.
 
-Phases 0–5 and final evaluation are complete. The measured results include both gains and regressions; keep the experimental modes explicit and preserve all runs and frozen choices. Delivery is next: verify a clean setup/workflow, prepare example queries, and consolidate useful temporary documentation before removing `docs/`. Independent human review remains optional and is not implied by the assistant source audit.
+Phases 0–5 and final evaluation are complete. The measured results include both gains and regressions; keep the experimental modes explicit and preserve all runs and frozen choices. Delivery is complete: a separate locked/wheel-installed environment passes the small live workflow and full local source/evidence checks; examples and a portable result archive are delivered, and temporary `docs/` notes have been consolidated and removed. Independent human review remains optional and is not implied by the assistant source audit.

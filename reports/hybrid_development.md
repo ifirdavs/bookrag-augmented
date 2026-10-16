@@ -1,5 +1,7 @@
 # Phase 3 — Hybrid retrieval results
 
+Delivery cleanup (2026-10-26): older development/exploratory raw runs were pruned; their measurements and IDs below remain historical records. Only the nine final test runs are retained locally and in [the portable archive](final_runs.zip). Historical source-path commands below describe those earlier sessions; current reproduction instructions use newly generated source-run IDs in the [README](../README.md#reproduce-a-controlled-comparison).
+
 Historical development-stage report. All subsequent test comparisons and the assistant claim/citation audit are now complete in the separate [final evaluation report](final_evaluation.md); development measurements below remain unchanged.
 
 Complete, 2026-10-22. BM25/RRF, optional reranking, the matched development comparisons and an exploratory assistant answer review are verified. All runs use the same 40 papers / 1,158 fixed chunks, Voyage 4 Large embeddings, Claude Haiku 5.5, answer prompt and source-span labels. No held-out questions were rerun or used for tuning.
@@ -22,7 +24,7 @@ Complete, 2026-10-22. BM25/RRF, optional reranking, the matched development comp
 | `b1_hybrid.yaml` | `0bd7c449468a4a11b0f7fac4a9d72df5` |
 | `b1_hybrid_rerank.yaml`, replaying B1 | `f0945144613e412f877f41ec22e8f065` |
 
-Exact hashes, protocols, per-question metrics, usage and review notes are in [hybrid_development_summary.json](hybrid_development_summary.json). Full answers/evidence/traces are retained in each local `artifacts/runs/<run-id>/run.json`. The index is `6f8ba8be92dcc84b51a5514f`; development-label SHA-256 is `9318d9aa89601583ba6cb2237b97651133b885459db4a2383e1ab598f50f1ca3`.
+Exact hashes, protocols, per-question metrics, usage and review notes are in [hybrid_development_summary.json](hybrid_development_summary.json). Historical answer/evidence measurements remain in this report/summary; older raw development runs were pruned during delivery. The index is `6f8ba8be92dcc84b51a5514f`; development-label SHA-256 is `9318d9aa89601583ba6cb2237b97651133b885459db4a2383e1ab598f50f1ca3`.
 
 ## Retrieval and verification
 
@@ -86,4 +88,4 @@ The earlier local top-20 diagnostic replayed original B0 run `640d302142b1483cb2
 
 Phase 3's engineering and development-evaluation gate is complete. Keep the original dense-20 default and reranking off in the core experiment ladder. B1/B1-R retain cap 40, RRF constant 60, top-five/4,000-token evidence limits; the optional reranked configuration has the strongest annotated retrieval in this small dev comparison, without an established relevance gain. No additional tuning, prompt/label changes or global reranking enablement is justified here. All 55 offline tests previously passed, including source provenance, lexical persistence/filters, empty lists, deterministic fusion and exact-pool replay; code is unchanged during this result verification.
 
-Next is Phase 4: section-aware chunks and bounded hierarchy expansion, with separate structural comparisons and the same corpus/models/prompt/final budgets. Final held-out comparisons are pending. Temporary `docs/` notes remain until the agreed delivery consolidation. No new model calls, Typer commands, commits, pushes or publication were made during this verification.
+At this historical checkpoint, Phase 4 and the final held-out comparisons were next; they have since completed. Delivery subsequently consolidated and removed the temporary notes. No new model calls, Typer commands, commits, pushes or publication were made during the original Phase 3 verification.
