@@ -1,5 +1,7 @@
 # Phase 3 — Hybrid retrieval results
 
+Historical development-stage report. All subsequent test comparisons and the assistant claim/citation audit are now complete in the separate [final evaluation report](final_evaluation.md); development measurements below remain unchanged.
+
 Complete, 2026-10-22. BM25/RRF, optional reranking, the matched development comparisons and an exploratory assistant answer review are verified. All runs use the same 40 papers / 1,158 fixed chunks, Voyage 4 Large embeddings, Claude Haiku 5.5, answer prompt and source-span labels. No held-out questions were rerun or used for tuning.
 
 ## Main development results

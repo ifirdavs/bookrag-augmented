@@ -1,5 +1,7 @@
 # Baseline evaluation and index builds
 
+The completed [final comparison and analysis](final_evaluation.md) includes these preserved baseline tests plus all enhanced test modes, with a separate [full structured-claim/citation assistant audit](final_answer_audit.json). Historical measurements and targeted review below remain unchanged.
+
 Phase 3 is complete (2026-10-22). The separate [hybrid report](hybrid_development.md) records dense-40/B1/exact-pool B1-R dev comparisons: P@5 0.16/0.20/0.28, group recall 0.467/0.533/0.800 and complete coverage 2/5, 2/5, 4/5. Targeted assistant relevance remains 1.8/2; retrieval gains are not an answer-accuracy claim. The B0/B0-R results below remain unchanged.
 
 ## Current 40-paper index, 2026-10-17
@@ -112,7 +114,7 @@ The dataset, index, full B0 settings and prompt hashes match the fixed protocol 
 
 The denominator is **13 answerable questions**. The two unanswerables have null positive-retrieval metrics and are assessed separately. There are seven matching evidence chunks across 65 final answerable-query slots: P@5 = 7/65 = 0.1077. Per-question group-recall sum is 5 + 1/3, so macro recall = (5 + 1/3)/13 = 0.4103. Complete coverage occurs on test01, test02, test04, test07 and test12: 5/13 = 0.3846. Gold spans are sparse, so zero overlap does not establish semantic irrelevance.
 
-Among the 13 answerables, the model marks ten sufficient and three partial (test05, test11, test13), with no full abstentions. These are model judgments, not independent correctness/relevance scores. Both designated unanswerables (test14 and test15) return **insufficient with zero claims**, matching the expected abstention behavior (2/2): no unsupported BLEU score or FedQuantum-X accuracy was invented. Full semantic claim/citation support review remains pending.
+Among the 13 answerables, the model marks ten sufficient and three partial (test05, test11, test13), with no full abstentions. These are model judgments, not independent correctness/relevance scores. Both designated unanswerables (test14 and test15) return **insufficient with zero claims**, matching the expected abstention behavior (2/2): no unsupported BLEU score or FedQuantum-X accuracy was invented. Full structured-claim/citation support review was pending at this baseline stage; it is now recorded separately in the [final assistant audit](final_answer_audit.json).
 
 Usage: **15 query-embedding calls / 275 input tokens**, **15 Claude responses / 92,920 input and 8,210 output tokens**. Sum of per-question elapsed times: **64.46 seconds**, including retrieval and generation. All outputs passed the normal structured-answer/citation checks; no execution failures were discarded. API token counts belong to each provider's own accounting; nominal USD estimates remain null.
 

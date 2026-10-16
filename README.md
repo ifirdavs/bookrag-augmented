@@ -294,11 +294,29 @@ HF_HOME=work/hf-cache uv run fedresearch evaluate --config configs/experiments/b
 
 `--seed-source` supports B2→B3 as well as B2a→B2; `--candidate-source` preserves both expansion traces for B3-R and skips all retrieval/expansion. B3 improves these five dev questions' source-span precision/recall/complete coverage over B2 (0.16/0.467/2-of-5 → 0.36/1.0/5-of-5). Paired B3-R scores **0.20/0.667/3-of-5**, despite identical complete candidate coverage: reranking moves annotated dev04 mechanisms and dev05's EMNIST protocol below the final-five cutoff. Assistant required-point review is 2.0/2 for B3 and 1.8/2 for B3-R, with partial-answer limitations. Keep B3 without reranking as the better measured graph configuration here. These are five-question diagnostics, not independent human accuracy or generalization results; graph curation occurred after dev outcomes were known. See [graph results](reports/graph.md) for exact ranks, verification, usage and limitations.
 
-## 10. Evaluation plan
+## 10. Evaluation and measured results
+
+**Final evaluation is complete (2026-10-26).** Nine preserved test runs cover 135 question executions with zero execution failures. All use the same 40 papers, models, answer prompt and final five-chunk / 4,000-Voyage-token budget. The [final report](reports/final_evaluation.md), [verified results](reports/final_evaluation_summary.json), [assistant claim/citation audit](reports/final_answer_audit.json) and unchanged [input protocol](reports/final_evaluation_protocol.json) record the evidence and limitations.
+
+| Mode | Gold-span precision@5 | Group recall@5 | Complete coverage |
+| --- | ---: | ---: | ---: |
+| B0 — dense 20 | 0.1077 | 0.4103 | 5/13 |
+| B0-R — paired reranking | 0.2154 | 0.8077 | 10/13 |
+| B0-40 — matched dense control | 0.1077 | 0.4103 | 5/13 |
+| B1 — hybrid | 0.1692 | 0.7308 | 9/13 |
+| B1-R — paired reranking | 0.2308 | 0.8846 | 11/13 |
+| B2a — section chunks | 0.1692 | 0.7692 | 9/13 |
+| B2 — hierarchy expansion | 0.1692 | 0.6923 | 8/13 |
+| B3 — graph expansion | 0.2308 | 0.8590 | 10/13 |
+| B3-R — paired reranking | 0.2000 | 0.8462 | 10/13 |
+
+These macro span diagnostics use 13 answerable questions. Both pre-existing negatives abstain in all nine runs. **Mental model:** hybrid combines dense and word matching; reranking chooses among that bounded pool; hierarchy and graph promote related original passages before the same final-five selection. Promotion can also push useful evidence out. Here B1-R retrieves the strongest gold coverage; section chunks give a modest recall gain, hierarchy regresses, and graph recovers some evidence. Preserving structure does not establish a consistent additional benefit in this experiment.
+
+The non-blind assistant audit covers all 279 structured claims and 517 citation links, with per-claim reasons. It distinguishes grounded but incomplete answers from sparse gold-span misses; independent human accuracy remains unmeasured. Missing original FedAvg/AFL evidence, ranking displacement and a source-interpretation error remain documented. Partial citation support often reflects complementary sources within a compound claim. No test-driven tuning or default change was made: dense-20 remains the default with reranking off. Replay timings exclude upstream retrieval and are not end-to-end speed comparisons; costs remain unconfigured. No new CLI commands, reindexing or label refreeze were needed. Delivery checks and temporary-document consolidation remain next.
 
 ### Benchmark construction
 
-Target 20 questions: 5 development questions and 15 held-out test questions. Across the test set, include paper-specific questions, cross-section questions, cross-paper comparisons, corpus synthesis, and at least two unanswerable or misleading-premise questions. Keep at least ten useful questions if the benchmark is later reduced; the current target remains twenty.
+The benchmark contains 20 questions: 5 development questions and 15 held-out test questions. Across the test set, include paper-specific questions, cross-section questions, cross-paper comparisons, corpus synthesis, and at least two unanswerable or misleading-premise questions. Keep at least ten useful questions if the benchmark is later reduced; the current target remains twenty.
 
 Annotate each question with:
 
@@ -471,9 +489,9 @@ No new Typer commands were added. `evaluate --seed-source` reuses initial hybrid
 
 Generated artifacts are in ignored `data/raw`, `data/processed`, and `artifacts`. Indexes include `metadata.sqlite`, Chroma storage and `index.json` under `artifacts/indexes/<index-id>/`; `CURRENT.json` selects the fixed index and `CURRENT_section.json` the section index; each activates only after a successful build. Embeddings are cached in SQLite. Answer/evaluation traces are saved under `artifacts/runs/<run-id>/`.
 
-Twenty source-span benchmark annotations (5 dev / 15 test) are in `data/benchmarks`. They were prepared independently of retrieval and passed historical canonical validation. The new parse migration is complete: all 26 passages passed canonical validation and the new held-out freeze is valid. Independent human review is still pending; see [evaluation protocol](docs/evaluation.md), including the exact development score calculations. The label freeze hashes the entire `data/benchmarks/test.jsonl` reference-annotation file into `data/benchmarks/frozen.json`; test evaluation rejects a hash mismatch. It does not make files read-only or freeze model weights/settings. Development and held-out span-overlap diagnostics plus an exploratory assistant relevance review are reported; none is an independent human accuracy score.
+Twenty source-span benchmark annotations (5 dev / 15 test) are in `data/benchmarks`. They were prepared independently of retrieval and passed historical canonical validation. The new parse migration is complete: all 26 passages passed canonical validation and the new held-out freeze is valid. Independent human review is still pending; see [evaluation protocol](docs/evaluation.md), including the exact development score calculations. The label freeze hashes the entire `data/benchmarks/test.jsonl` reference-annotation file into `data/benchmarks/frozen.json`; test evaluation rejects a hash mismatch. It does not make files read-only or freeze model weights/settings. Development and held-out span-overlap diagnostics and the completed final assistant claim/citation audit are reported; none is an independent human accuracy score.
 
-Graph retrieval, B3 exact-seed development and paired B3-R verification/review are complete. Final held-out enhanced-retrieval comparisons and delivery verification remain. MCP will not be implemented for this project.
+Graph retrieval, all final held-out comparisons and the assistant source audit are complete. Delivery verification remains. MCP will not be implemented for this project.
 
 ## 13. Implementation roadmap
 
@@ -484,10 +502,10 @@ The sequence is dependency-driven, without a mandatory day allocation. Detailed 
 | 0 — Foundation | Complete: package/contracts/lockfile and Claude/Atlas access verified; bulk indexing succeeds |
 | 1 — Preprocessing | Corrected 40-paper parse verified: 937 pages / 955 sections / 1,158 chunks, no diagnostic warnings; all 26 benchmark passages migrated/validated and test labels refrozen |
 | 2 — Baseline | Complete for the 40-paper reference: persistent index, cited B0/B0-R answers on 5 dev / 15 held-out questions, paired candidates, abstention checks and reported limitations; independent human grading remains optional follow-up |
-| 3 — Hybrid retrieval | Complete: BM25/RRF, B1/B1-R and matched dense-40 configs; 55 offline tests, exact-pool dev comparison, usage and assistant answer review verified. Final held-out assessment is pending |
+| 3 — Hybrid retrieval | Complete: BM25/RRF, B1/B1-R and matched dense-40 configs; 55 offline tests, exact-pool dev comparison, usage and assistant answer review verified. Final held-out comparison and source audit complete; see Section 10 |
 | 4 — Structure | Implemented: section chunks, bounded hierarchy, separate B2a/B2 configs and exact seed replay; 67 offline tests/preflight pass. Complete: section index and B2a/B2 exact-seed dev comparison verified. B2a P@5/recall/complete: 0.24/0.733/3-of-5; B2: 0.16/0.467/2-of-5. Hierarchy stays experimental |
 | 5 — Graph | Complete: 36 entities / 29 assertions / 14 papers, persistent NetworkX, aliases and bounded B3/B3-R; 81 tests pass. Exact-pool dev comparison verified: B3 0.36/1.0/5-of-5 versus B3-R 0.20/0.667/3-of-5; retain optional reranking off here |
-| Evaluation | Frozen comparisons, answer relevance/grounding, cost/latency, actual observed limitations/failures |
+| Evaluation | Complete: nine test runs, 135 successful executions, paired replay checks, full structured-claim/citation assistant audit, usage/timing and observed limitations |
 | Delivery | Reproducible setup, current documentation and useful example queries |
 
 Preserve the baseline, structural retrieval, citations and honest comparisons. Keep graph breadth and optional reranking small until measurements justify expansion.
@@ -497,11 +515,11 @@ Preserve the baseline, structural retrieval, citations and honest comparisons. K
 - [x] Scope is agreed with the user; course rubric and video requirements are excluded.
 - [x] The expanded 40-paper corpus is parsed/indexed with the pinned Voyage tokenizer and documented source versions.
 - [x] Dense, hybrid, structural and graph retrieval can be selected through configuration; controlled development comparisons are documented, including regressions.
-- [x] Source evidence resolves to paper, section and PDF page. (Canonical/indexed-source and live citation-ID checks pass; semantic claim support still needs review.)
-- [ ] Held-out comparisons use fixed inputs/settings and report precision@5, evidence coverage and answer relevance/grounding.
-- [ ] Any optional reranking is assessed separately with paired candidate pools and cost/latency measurements.
-- [ ] Actual observed failures and limitations are documented without a failure-count quota.
-- [ ] Setup and example-query instructions reflect verified behavior; pending hosted checks remain explicit.
+- [x] Source evidence resolves to paper, section and PDF page. (Canonical/indexed-source checks and the final structured-claim/citation assistant audit are complete.)
+- [x] Held-out comparisons use fixed inputs/settings and report precision@5, evidence coverage and answer relevance/grounding.
+- [x] Any optional reranking is assessed separately with paired candidate pools and cost/latency measurements.
+- [x] Actual observed failures and limitations are documented without a failure-count quota.
+- [ ] Clean-environment setup, example-query demonstration and temporary-document consolidation pass the delivery gate.
 
 ## 15. Updating this README
 

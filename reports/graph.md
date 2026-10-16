@@ -1,5 +1,7 @@
 # Phase 5 — Evidence-linked graph
 
+Historical development-stage report. All subsequent test comparisons and the assistant claim/citation audit are now complete in the separate [final evaluation report](final_evaluation.md); development measurements below remain unchanged.
+
 Phase 5 complete: implementation, B3 exact-seed development comparison and paired B3-R comparison verified, 2026-10-24. Phase 4 was committed first as `509beaf`, with both author and committer dates `2026-09-01T18:56:06+05:00`.
 
 ## What is implemented
