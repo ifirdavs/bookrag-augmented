@@ -71,17 +71,112 @@ HF_HOME=work/hf-cache uv run fedresearch retrieve "How does SCAFFOLD correct cli
 
 **Mental model:** find candidates → optionally promote original passages through hierarchy/graph links → remove overlapping source text → optionally rerank → pack up to five passages → generate cited claims. One shared service handles questions and evaluation.
 
+### Architecture: components and their dependencies
+
+This view shows the application, persistent stores and hosted models. Arrows mean “uses” or the labeled read/write dependency; execution order is shown separately below.
+
 ```mermaid
-flowchart LR
-    Q[Question] --> D[Chroma dense search]
-    Q --> L[BM25 in enhanced modes]
-    D --> F[Dense order or RRF fusion]
-    L --> F
-    F --> X[Optional bounded hierarchy and graph]
-    X --> R[Source deduplication and optional reranking]
-    R --> P[Five passages within 4000 tokens]
-    P --> A[Claude cited answer]
+flowchart TB
+    subgraph APP["FedResearch application"]
+        CLI["CLI<br><sub>Build, retrieve, ask and evaluate commands</sub>"]
+        BUILD["Preprocessing and index builders<br><sub>PDF parsing, chunking and source validation</sub>"]
+        ANSWER["Answer pipeline<br><sub>Structured claims and citation validation</sub>"]
+        RETRIEVAL["Shared RetrievalService<br><sub>Dense, hybrid, hierarchy and graph retrieval</sub>"]
+        CLI --> BUILD
+        CLI --> ANSWER
+        CLI --> RETRIEVAL
+        ANSWER --> RETRIEVAL
+    end
+
+    subgraph DATA["Local sources and persistent stores"]
+        SOURCE["Source documents and inputs<br><sub>PDFs, manifest and canonical JSON</sub><br><hr><sub>Curated entities, aliases and relation evidence</sub>"]
+        VECTOR["Chroma<br><sub>Fixed and section-chunk embeddings</sub>"]
+        SQL["SQLite<br><sub>Blocks, section trees, chunks and source spans</sub><br><hr><sub>Persistent FTS5 BM25 index</sub>"]
+        GRAPH["NetworkX graph JSON<br><sub>Entities and paper-specific assertions</sub><br><hr><sub>Supporting chunk IDs resolve to SQLite sources</sub>"]
+    end
+
+    subgraph MODELS["Hosted model APIs"]
+        EMBED["Voyage 4 Large<br><sub>Document and query embeddings · 2048 dimensions</sub>"]
+        RERANK["rerank-3<br><sub>Optional query–passage relevance scoring</sub>"]
+        LLM["Claude Haiku 5.5<br><sub>Cited answer generation</sub>"]
+    end
+
+    BUILD -->|reads| SOURCE
+    BUILD -->|writes| VECTOR
+    BUILD -->|writes| SQL
+    BUILD -->|writes| GRAPH
+    BUILD --> EMBED
+    RETRIEVAL --> VECTOR
+    RETRIEVAL --> SQL
+    RETRIEVAL --> GRAPH
+    RETRIEVAL --> EMBED
+    RETRIEVAL --> RERANK
+    ANSWER --> LLM
+    GRAPH -. source links .-> SQL
 ```
+
+### Offline flow: prepare documents and build indexes
+
+The build starts from pinned PDFs. Canonical blocks retain original evidence, while fixed and section-aware chunks provide two index views. The graph uses reviewed assertions and complete source links; graph building makes no model calls. The branches below show data dependencies rather than an exact file-write schedule.
+
+```mermaid
+flowchart TD
+    PDF["PDFs and corpus manifest<br><sub>Pinned paper versions and SHA-256 checksums</sub>"]
+    PARSE["Parse and validate layout<br><sub>PyMuPDF · reading order · headings · diagnostics</sub>"]
+    CANON["Canonical blocks and section trees<br><sub>Original text, PDF pages and character spans</sub><br><hr><sub>Parent/child links preserve document hierarchy</sub>"]
+    CHUNKS["Fixed and section-aware chunks<br><sub>600-token cap · 100-token overlap target</sub><br><hr><sub>Both views retain canonical source IDs</sub>"]
+    EMBED["Embed chunk text<br><sub>voyage-4-large · document input type</sub><br><hr><sub>Reuse compatible cached embeddings</sub>"]
+    VECTOR["Chroma vector indexes<br><sub>Independent fixed and section indexes</sub>"]
+    META["SQLite metadata and hierarchy<br><sub>Paper, block, section, chunk and span records</sub>"]
+    BM25["SQLite FTS5 BM25 indexes<br><sub>Same chunk IDs and texts as each vector index</sub>"]
+    CURATED["Curated graph inputs<br><sub>Entities, aliases, relation types and exact quotes</sub>"]
+    CHECK["Validate assertions and source links<br><sub>Resolve complete supporting chunks and original spans</sub>"]
+    GRAPH["Evidence-linked NetworkX graph<br><sub>Versioned JSON beside the section index</sub>"]
+
+    PDF --> PARSE --> CANON --> CHUNKS
+    CHUNKS --> EMBED --> VECTOR
+    CANON --> META
+    CHUNKS --> META
+    CHUNKS --> BM25
+    CURATED --> CHECK
+    META --> CHECK --> GRAPH
+```
+
+### Online flow: collect evidence and answer
+
+Configuration selects the stages in this fixed workflow. Dense search runs in every fresh retrieval; enhanced modes add BM25/RRF. B2/B3 add hierarchy expansion and B3 adds graph support before shared evidence selection. Evaluation replays can reuse saved upstream pools, as described in the evaluation section.
+
+```mermaid
+flowchart TD
+    Q["User question and optional filters<br><sub>e.g., Compare FedProx and SCAFFOLD for non-IID data</sub>"]
+    SERVICE["Shared RetrievalService<br><sub>Apply configuration, source filters and query limits</sub>"]
+    QUERY["Embed the question<br><sub>voyage-4-large · query input type</sub>"]
+    DENSE["Chroma dense search<br><sub>Up to 20 candidates in B0 or 40 in matched/enhanced modes</sub>"]
+    LEXICAL["BM25 in enhanced modes<br><sub>Up to 40 lexical hits over the same chunk view</sub>"]
+    FUSE["Order the candidate pool<br><sub>Dense order for B0; RRF fusion for enhanced modes</sub><br><hr><sub>RRF constant 60 · merged cap 40</sub>"]
+    TREE["Optional hierarchy expansion · B2/B3<br><sub>Adjacent, parent and child section context</sub><br><hr><sub>3 anchors · 2 selections each · 6 overall</sub>"]
+    GRAPH["Optional graph expansion · B3<br><sub>Resolve aliases and follow source-backed relations</sub><br><hr><sub>4 entities · 12 one-hop relations · 6 support chunks</sub>"]
+    DEDUP["Deduplicate original source spans<br><sub>Remove substantial overlap before optional reranking</sub>"]
+    RERANK["Optional rerank-3<br><sub>Score the question against every surviving passage text</sub>"]
+    PACK["Pack original evidence<br><sub>Up to 5 passages within 4000 Voyage tokens</sub><br><hr><sub>Preserve paper ID, section, PDF page and raw spans</sub>"]
+    HAS{"Evidence available?"}
+    GENERATE["Claude generates structured cited claims<br><sub>Assess sufficiency using the supplied passages</sub>"]
+    VALIDATE["Validate citation IDs and response structure<br><sub>Semantic claim support still requires source review</sub>"]
+    OUT["Answer, partial answer or insufficient evidence<br><sub>Return evidence, citations, usage and retrieval trace</sub>"]
+
+    Q --> SERVICE
+    SERVICE --> QUERY --> DENSE
+    SERVICE --> LEXICAL
+    DENSE --> FUSE
+    LEXICAL --> FUSE
+    FUSE --> TREE --> GRAPH --> DEDUP --> RERANK --> PACK --> HAS
+    HAS -->|Yes| GENERATE --> VALIDATE --> OUT
+    HAS -->|No: local insufficient-evidence response| VALIDATE
+```
+
+Disabled optional stages pass the candidate pool through unchanged. Source provenance is checked during parsing/indexing and retained throughout retrieval; citation validation checks the returned IDs and response consistency, rather than automatically proving semantic support. There is no agent planning loop in this implementation.
+
+### Retrieval configurations and budgets
 
 | Mode/config in `configs/experiments/` | Candidate selection | Index |
 | --- | --- | --- |
