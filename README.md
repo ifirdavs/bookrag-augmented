@@ -147,7 +147,7 @@ flowchart TD
 Configuration selects the stages in this fixed workflow. Dense search runs in every fresh retrieval; enhanced modes add BM25/RRF. B2/B3 add hierarchy expansion and B3 adds graph support before shared evidence selection. Evaluation replays can reuse saved upstream pools, as described in the evaluation section.
 
 ```mermaid
-flowchart TD
+flowchart LR
     Q["User question and optional filters<br><sub>e.g., Compare FedProx and SCAFFOLD for non-IID data</sub>"]
     SERVICE["Shared RetrievalService<br><sub>Apply configuration, source filters and query limits</sub>"]
     QUERY["Embed the question<br><sub>voyage-4-large · query input type</sub>"]
@@ -369,4 +369,4 @@ Useful troubleshooting:
 
 Research sources are pinned in the corpus manifest and cited by answers. Primary implementation references: [Claude structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs), [Voyage embeddings](https://docs.voyageai.com/docs/embeddings), [Voyage tokenization](https://www.mongodb.com/docs/voyageai/tutorials/tokenization/), [Atlas rerankers](https://www.mongodb.com/docs/voyageai/models/rerankers/?client=python), [PyMuPDF text extraction](https://pymupdf.readthedocs.io/en/latest/recipes-text.html), [Chroma](https://docs.trychroma.com/), [SQLite FTS5](https://sqlite.org/fts5.html), [NetworkX node-link JSON](https://networkx.org/documentation/stable/reference/readwrite/generated/networkx.readwrite.json_graph.node_link_data.html), [Neo4j driver](https://neo4j.com/docs/python-manual/current/query-simple/) and [APOC JSON loading](https://neo4j.com/docs/apoc/current/import/load-json/). The linked BookRAG paper/repository describe the broader research design; this project preserves the narrower implemented scope above.
 
-Phases 0–5 and final evaluation are complete. The [implementation plan](IMPLEMENTATION_PLAN.md) records their gates; the [phase status](reports/phase_status.md) records current completion. Delivery is complete, with 84 passing tests and an isolated live workflow. The former temporary `docs/` notes were consolidated here and in the reports and the folder removed. Historical results are preserved as reports; optional agent/MCP, full BookRAG algorithms, Neo4j and UI work remain outside this delivery.
+Phases 0–5 and final evaluation are complete. The [phase status](reports/phase_status.md) records current completion. Delivery is complete, with 84 passing tests and an isolated live workflow. The former temporary `docs/` notes were consolidated here and in the reports and the folder removed. Historical results are preserved as reports; optional agent/MCP, full BookRAG algorithms, Neo4j and UI work remain outside this delivery.
